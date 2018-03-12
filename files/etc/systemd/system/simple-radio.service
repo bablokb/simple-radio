@@ -1,0 +1,22 @@
+# --------------------------------------------------------------------------
+# Systemd service Definition for simple-radio.service.
+#
+# The service just starts the script /usr/local/bin/simple-radio.py
+#
+# Author: Bernhard Bablok
+# License: GPL3
+#
+# Website: https://github.com/bablokb/simple-radio
+#
+# --------------------------------------------------------------------------
+
+[Unit]
+Description=Start simple-radio
+After=multi-user.target
+ 
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/simple-radio.py
+
+[Install]
+WantedBy=multi-user.target
