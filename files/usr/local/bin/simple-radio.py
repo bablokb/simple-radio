@@ -227,10 +227,15 @@ class Radio(object):
             split = line[:self._cols].rfind(" ")
             self.debug("split: %d" % split)
             if split == -1:
+              # hard split within a word
               split = self._cols
+              rest  = line[split:]
+            else:
+              # split at blank: drop blank
+              rest  = line[(split+1):]
             self.debug("adding: %s" % line[:split])
             self._disp_queue.put(line[:split])
-            line = line[(split+1):]
+            line = rest
             self.debug("text left: %s" % line)
           if len(line):
             self._disp_queue.put(line)
