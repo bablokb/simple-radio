@@ -131,10 +131,10 @@ class Radio(object):
       # write data to display
       if self.have_disp:
         self._lcd.lcd_display_string(self._get_title(),1)
-        # TODO: fix!!
-        for i in range(2,min(self._rows+1,len(lines)-1)):
-          self._lcd.lcd_display_string(lines[i-2],i)
-        # TODO: fix!!
+        nr = 2
+        for line in lines:
+          self._lcd.lcd_display_string(line,nr)
+          nr += 1
       else:
         # simulate display
         if not self._debug:
