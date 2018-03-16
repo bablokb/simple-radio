@@ -12,7 +12,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import os, sys, time, datetime, signal, select, re
+import os, sys, time, datetime, signal, select, re, shlex
 import threading, signal, subprocess, traceback
 import Queue, collections
 import ConfigParser
@@ -52,6 +52,11 @@ class Radio(object):
     except:
       self._channel_file = default_path
 
+    try:
+      self._mpg123_opts = parser.get("GLOBAL", "mpg123_opts")
+    except:
+      self._mpg123_opts = "-b 1024"
+
     self._debug     = parser.getboolean("GLOBAL", "debug")
     self.have_disp  = have_disp and parser.getboolean("DISPLAY", "display")
     self._rows      = parser.getint("DISPLAY", "rows")
@@ -76,7 +81,7 @@ class Radio(object):
     self._channels = []
     with open(self._channel_file) as f:
       for channel in f:
-        channel = channel.decode('utf-8')
+        channel = channel.rstrip('\n').decode('utf-8')
         self._channels.append(channel.split('@')) # channel: line with name@url
 
   # --- get title-line (1st line of display)   -------------------------------
@@ -267,9 +272,16 @@ class Radio(object):
     self._name = channel_name
 
     # spawn new mpg123 process
-    args = ["mpg123","-b","1024","-@",channel_url]
+    args = ["mpg123"]
+    opts = shlex.split(self._mpg123_opts)
+    args += opts
+    if channel_url.endswith(".m3u"):
+      args += ["-@",channel_url]
+    else:
+      args += [channel_url]
 
     self.debug("starting new channel %s" % self._name)
+    self.debug("with args %r" % (args,))
     self._player = subprocess.Popen(args,bufsize=-1,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
