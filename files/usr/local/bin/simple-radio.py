@@ -139,11 +139,11 @@ class Radio(object):
         # simulate display
         if not self._debug:
           print("\033c")
-        print("|%s|" % (self._cols*'-'))
+        print("-%s-" % (self._cols*'-'))
         print("|%s|" % self._get_title())
         for line in lines:
           print("|%s|" % self._fmt_line.format(line))
-        print("|%s|" % (self._cols*'-'))
+        print("-%s-" % (self._cols*'-'))
 
       # sleep
       if self.stop_event.wait(SCROLL_TIME):
