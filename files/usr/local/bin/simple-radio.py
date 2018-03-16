@@ -203,7 +203,7 @@ class Radio(object):
 
     self.debug("starting read_icy_meta")
 
-    regex = re.compile(r".*ICY-META.*'([^']*)';")
+    regex = re.compile(r".*ICY-META.*?'(.*)';$")
     try:
       while True:
         if self._meta_event.wait(0.01):
