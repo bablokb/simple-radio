@@ -25,7 +25,7 @@ except:
   have_disp = False
 
 FIFO_NAME="/var/run/ttp229-keypad.fifo"
-POLL_TIME=5
+POLL_TIME=2
 SCROLL_TIME=3
 
 class Radio(object):
@@ -132,7 +132,10 @@ class Radio(object):
       try:
         line = self._disp_queue.get_nowait()
         self.debug("update_display: line: %s" % line)
-        lines.append(line)
+        if line == ':CLEAR:':
+          lines.clear()
+        else:
+          lines.append(line)
       except:
         if self._debug:
           traceback.format_exc()
@@ -275,10 +278,11 @@ class Radio(object):
   def switch_channel(self,nr):
     """ switch to given channel """
 
-    self.debug("switch to channel %s" % nr)
     nr = int(nr)
+    self.debug("switch to channel %d" % nr)
     # check if we have to do anything
-    if nr == self._channel:
+    if nr == (self._channel+1):
+      self.debug("already on channel %d" % nr)
       return
     else:
       self._channel = min(nr-1,len(self._channels)-1)
@@ -401,6 +405,7 @@ class Radio(object):
     if self._player:
       self.debug("stopping player ...")
       self._player.terminate()
+      self._disp_queue.put(':CLEAR:')           # clear old messages
       self._player = None
       self._meta_event.set()
       self._meta_thread.join()
