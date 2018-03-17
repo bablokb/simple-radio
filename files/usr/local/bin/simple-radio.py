@@ -253,10 +253,18 @@ class Radio(object):
   # --- process key   ---------------------------------------------------------
 
   def process_key(self,key):
-    """ process key: switch to given channel """
+    """ map key to command and execute it"""
 
-    self.debug("processing key %s" % key)
-    key = int(key)                       # for LIRC, map LIRC-name to key
+    # TODO: implement mapping
+    self.switch_channel(key)
+
+  # --- switch channel   ------------------------------------------------------
+
+  def switch_channel(self,key):
+    """ switch to given channel """
+
+    self.debug("switch to channel %s" % key)
+    key = int(key)
     # check if we have to do anything
     if key == self._channel:
       return
