@@ -64,6 +64,11 @@ class Radio(object):
     self._fmt_title = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
     self._fmt_line  = u"{0:%d.%ds}" % (self._cols,self._cols)
 
+    # read key-mappings
+    self._key_map = {}
+    for (key,func_name) in parser.items("KEYS"):
+      self._key_map[key] = func_name
+
   # --- print debug messages   ------------------------------------------------
 
   def debug(self,text):
@@ -189,7 +194,7 @@ class Radio(object):
           # we just continue and hope the key-provider comes back
           continue
 
-      key = pipe.readline()
+      key = pipe.readline().rstrip('\n')
       self.debug("key read: %s" % key)
       if key:
         self.process_key(key)
@@ -255,21 +260,25 @@ class Radio(object):
   def process_key(self,key):
     """ map key to command and execute it"""
 
-    # TODO: implement mapping
-    self.switch_channel(key)
+    self.debug("processing key %s" % key)
+    func_name = self._key_map[key]
+    if hasattr(self,func_name):
+      self.debug("executing: %s" % func_name)
+      func = getattr(self,func_name)
+      func(key)
 
   # --- switch channel   ------------------------------------------------------
 
-  def switch_channel(self,key):
+  def switch_channel(self,nr):
     """ switch to given channel """
 
-    self.debug("switch to channel %s" % key)
-    key = int(key)
+    self.debug("switch to channel %s" % nr)
+    nr = int(nr)
     # check if we have to do anything
-    if key == self._channel:
+    if nr == self._channel:
       return
     else:
-      self._channel = min(key-1,len(self._channels)-1)
+      self._channel = min(nr-1,len(self._channels)-1)
       channel_name = self._channels[self._channel][0]
       channel_url  = self._channels[self._channel][1]
 
@@ -296,6 +305,90 @@ class Radio(object):
     self._meta_event = threading.Event()
     self._meta_thread = threading.Thread(target=self.read_icy_meta)
     self._meta_thread.start()
+
+  # --- switch to next channel   ----------------------------------------------
+
+  def next_channel(self,_):
+    """ switch to next channel """
+
+    self.debug("switch to next channel")
+    self.debug("NOT IMPLEMENTED YET!")
+
+  # --- switch to previous channel   ------------------------------------------
+
+  def previous_channel(self,_):
+    """ switch to previous channel """
+
+    self.debug("switch to previous channel")
+    self.debug("NOT IMPLEMENTED YET!")
+
+  # --- turn volume up   ------------------------------------------------------
+
+  def volume_up(self,_):
+    """ turn volume up """
+
+    self.debug("turn volume up")
+    self.debug("NOT IMPLEMENTED YET!")
+
+  # --- turn volume down   ----------------------------------------------------
+
+  def volume_down(self,_):
+    """ turn volume down """
+
+    self.debug("turn volume down")
+    self.debug("NOT IMPLEMENTED YET!")
+
+  # --- toggle mute   ---------------------------------------------------------
+
+  def toggle_mute(self,_):
+    """ toggle mute """
+
+    self.debug("toggle mute")
+    self.debug("NOT IMPLEMENTED YET!")
+
+  # --- turn radio off   ------------------------------------------------------
+
+  def radio_off(self,_):
+    """ turn radio off """
+
+    self.debug("turning radio off")
+    self._stop_player()
+
+  # --- shutdown system   -----------------------------------------------------
+
+  def shutdown(self,_):
+    """ shutdown system """
+
+    self.debug("processing shutdown")
+    if not self._debug:
+      os.system("sudo /sbin/halt &")
+      os.kill(os.getpid(), signal.SIGINT)    # kill ourselves
+    else:
+      self.debug("no shutdown in debug-mode")
+
+  # --- reboot system   -----------------------------------------------------
+
+  def reboot(self,_):
+    """ reboot system """
+
+    self.debug("processing reboot")
+    if not self._debug:
+      os.system("sudo /sbin/reboot &")
+      os.kill(os.getpid(), signal.SIGINT)    # kill ourselves
+    else:
+      self.debug("no reboot in debug-mode")
+
+  # --- restart system   ------------------------------------------------------
+
+  def restart(self,_):
+    """ restart system """
+
+    self.debug("processing restart")
+    if not self._debug:
+      os.system("sudo /bin/systemctl restart simple-radio.service &")
+      os.kill(os.getpid(), signal.SIGINT)    # kill ourselves
+    else:
+      self.debug("no restart in debug-mode")
 
   # --- stop player   ---------------------------------------------------------
 
