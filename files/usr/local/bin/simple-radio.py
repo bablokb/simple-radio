@@ -249,6 +249,9 @@ class Radio(object):
             self.debug("text left: %s" % line)
           if len(line):
             self._disp_queue.put(line)
+          # send separator
+          self._disp_queue.put(self._cols*'-')
+
     except:
       # typically an IO-exception due to closing of stdout
       if self._debug:
