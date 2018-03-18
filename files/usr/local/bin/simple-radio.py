@@ -19,14 +19,13 @@ import ConfigParser
 
 try:
   import lcddriver
-  have_disp = True
+  have_lcd = True
 except:
   print("[WARNING] could not import lcddriver")
-  have_disp = False
+  have_lcd = False
 
 FIFO_NAME="/var/run/ttp229-keypad.fifo"
 POLL_TIME=2
-SCROLL_TIME=3
 
 class Radio(object):
   """ singleton class for all methods of the program """
@@ -57,12 +56,13 @@ class Radio(object):
     except:
       self._mpg123_opts = "-b 1024"
 
-    self._debug     = parser.getboolean("GLOBAL", "debug")
-    self.have_disp  = have_disp and parser.getboolean("DISPLAY", "display")
-    self._rows      = parser.getint("DISPLAY", "rows")
-    self._cols      = parser.getint("DISPLAY", "cols")
-    self._fmt_title = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
-    self._fmt_line  = u"{0:%d.%ds}" % (self._cols,self._cols)
+    self._debug       = parser.getboolean("GLOBAL", "debug")
+    self.have_disp    = have_lcd and parser.getboolean("DISPLAY", "display")
+    self._rows        = parser.getint("DISPLAY", "rows")
+    self._cols        = parser.getint("DISPLAY", "cols")
+    self._scroll_time = parser.getint("DISPLAY", "scroll")
+    self._fmt_title   = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
+    self._fmt_line    = u"{0:%d.%ds}" % (self._cols,self._cols)
 
     # read key-mappings
     self._key_map = {}
@@ -160,7 +160,7 @@ class Radio(object):
         print("-%s-" % (self._cols*'-'))
 
       # sleep
-      if self.stop_event.wait(SCROLL_TIME):
+      if self.stop_event.wait(self._scroll_time):
         self.debug("terminating update_display on stop request")
         return
 
