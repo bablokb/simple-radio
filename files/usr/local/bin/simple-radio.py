@@ -334,15 +334,19 @@ class Radio(object):
     """ switch to next channel """
 
     self.debug("switch to next channel")
-    self.debug("NOT IMPLEMENTED YET!")
+    # switch_channel expects a channel-number, while self._channel is
+    # a channel index
+    self.switch_channel(1+((self._channel+1) % len(self._channels)))
 
   # --- switch to previous channel   ------------------------------------------
 
-  def previous_channel(self,_):
+  def prev_channel(self,_):
     """ switch to previous channel """
 
     self.debug("switch to previous channel")
-    self.debug("NOT IMPLEMENTED YET!")
+    # switch_channel expects a channel-number, while self._channel is
+    # a channel index
+    self.switch_channel(1+((self._channel-1) % len(self._channels)))
 
   # --- turn volume up   ------------------------------------------------------
 
@@ -420,7 +424,12 @@ class Radio(object):
     if self._player:
       self._name = None
       self.debug("stopping player ...")
-      self._player.terminate()
+      try:
+        self._player.terminate()
+      except:
+        if self._debug:
+          traceback.format_exc()
+        pass
       self._player = None
       self._meta_event.set()
       self._meta_thread.join()
