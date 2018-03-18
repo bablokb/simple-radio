@@ -44,7 +44,8 @@ class Radio(object):
   def read_config(self,parser):
     """ read configuration from config-file """
 
-    self._i2c = parser.getint("GLOBAL","i2c")
+    self._i2c    = parser.getint("GLOBAL","i2c")
+    self._mixer  = parser.get("GLOBAL","mixer")
     default_path = os.path.join(os.path.expanduser("~"),"simple-radio.channels")
     try:
       self._channel_file = parser.get("GLOBAL", "channel_file")
@@ -370,7 +371,7 @@ class Radio(object):
     """ toggle mute """
 
     self.debug("toggle mute")
-    self.debug("NOT IMPLEMENTED YET!")
+    subprocess.call(["amixer","-q","sset",self._mixer,"toggle"])
 
   # --- turn radio off   ------------------------------------------------------
 
