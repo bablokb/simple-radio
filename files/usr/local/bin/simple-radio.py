@@ -130,11 +130,12 @@ class Radio(object):
     while True:
       # poll queue for data and append to deque
       try:
-        line = self._disp_queue.get_nowait()
-        self.debug("update_display: line: %s" % line)
-        if line == ':CLEAR:':
+        if not self._name:
+          self.debug("clearing lines")
           lines.clear()
         else:
+          line = self._disp_queue.get_nowait()
+          self.debug("update_display: line: %s" % line)
           lines.append(line)
       except:
         if self._debug:
@@ -219,8 +220,9 @@ class Radio(object):
     regex = re.compile(r".*ICY-META.*?'(.*)';$")
     try:
       while True:
-        if self._meta_event.wait(0.01):
-          return
+        if not self._name or self._meta_event.wait(0.01):
+          self.debug("terminating on stop request")
+          break
         data = self._player.stdout.readline().decode('utf-8')
         if data == '' and self._player.poll() is not None:
           break
@@ -257,6 +259,19 @@ class Radio(object):
 
     except:
       # typically an IO-exception due to closing of stdout
+      if self._debug:
+        traceback.format_exc()
+      pass
+
+    # clear all pending lines
+    self.debug("clearing queued lines")
+    try:
+      count = 0
+      while not self._disp_queue.empty():
+        count += 1
+        self.debug("  ... %d" % count)
+        self._disp_queue.get_nowait()
+    except:
       if self._debug:
         traceback.format_exc()
       pass
@@ -403,14 +418,13 @@ class Radio(object):
     """ stop current player """
 
     if self._player:
+      self._name = None
       self.debug("stopping player ...")
       self._player.terminate()
-      self._disp_queue.put(':CLEAR:')           # clear old messages
       self._player = None
       self._meta_event.set()
       self._meta_thread.join()
       self._meta_event = None
-      self._name = None
       self.debug("... done stopping player")
     
   # --- setup signal handler   ------------------------------------------------
