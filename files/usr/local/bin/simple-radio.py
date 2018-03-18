@@ -12,7 +12,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import os, sys, time, datetime, signal, select, re, shlex
+import locale, os, sys, time, datetime, signal, select, re, shlex
 import threading, signal, subprocess, traceback
 import Queue, collections
 import ConfigParser
@@ -442,6 +442,9 @@ class Radio(object):
 # --- main program   ----------------------------------------------------------
 
 if __name__ == '__main__':
+
+  # set local to default from environment
+  locale.setlocale(locale.LC_ALL, '')
 
   radio = Radio()
 
