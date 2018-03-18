@@ -255,7 +255,7 @@ class Radio(object):
           if len(line):
             self._disp_queue.put(line)
           # send separator
-          self._disp_queue.put(self._cols*'-')
+          self._disp_queue.put("%s%s" % (((self._cols-6)/2)*' ',6*'*'))
 
     except:
       # typically an IO-exception due to closing of stdout
