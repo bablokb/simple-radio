@@ -229,13 +229,16 @@ class Radio(object):
           break
         if data:
           self.debug("read_icy_meta: data: %s" % data)
-          # parse line
-          (line,count) = regex.subn(r'\1',data)
-          if not count:
-            self.debug("ignoring data")
-            continue
+          if 'error:' in data:
+            line = data.rstrip('\n')
           else:
-            line = line.rstrip('\n')
+            # parse line
+            (line,count) = regex.subn(r'\1',data)
+            if not count:
+              self.debug("ignoring data")
+              continue
+            else:
+              line = line.rstrip('\n')
 
           # break line in parts
           self.debug("splitting line: %s" % line)
@@ -263,6 +266,11 @@ class Radio(object):
       if self._debug:
         traceback.format_exc()
       pass
+
+    # check for error condition (this happens e.g. if the url is wrong)
+    if self._name:
+      # don't clear lines
+      return
 
     # clear all pending lines
     self.debug("clearing queued lines")
