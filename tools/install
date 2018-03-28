@@ -9,6 +9,15 @@
 #
 # --------------------------------------------------------------------------
 
+# --- check user parameter   -----------------------------------------------
+
+if [ -z "$1" ]; then
+  echo -e "usage: $0 username" >&2
+  exit 3
+else
+  USERNAME="$1"
+fi
+
 # --- defaults used during installation   ----------------------------------
 
 PROJECT="simple-radio"
@@ -43,6 +52,10 @@ if [ -f /etc/${PROJECT}.conf.$rand ]; then
   mv /etc/${PROJECT}.conf.$rand /etc/${PROJECT}.conf
   echo -e "\nnew version of configuration file: /etc/${PROJECT}.conf.new"
 fi
+
+# --- fix user of service   -------------------------------------------------
+
+sed -i -e "/User=/s/=.*/=$USERNAME/" /etc/systemd/system/${PROJECT}.service
 
 # --- activate service   ----------------------------------------------------
 
