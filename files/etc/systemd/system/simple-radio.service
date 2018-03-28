@@ -16,6 +16,7 @@ After=multi-user.target
  
 [Service]
 Type=simple
+User=XXX
 ExecStart=/usr/local/bin/simple-radio.py
 
 [Install]
