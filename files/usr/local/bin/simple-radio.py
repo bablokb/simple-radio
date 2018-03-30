@@ -351,7 +351,10 @@ class Radio(object):
     self.debug("switch to next channel")
     # switch_channel expects a channel-number, while self._channel is
     # a channel index
-    self.switch_channel(1+((self._channel+1) % len(self._channels)))
+    if self._channel == -1:
+      self.switch_channel(1)
+    else:
+      self.switch_channel(1+((self._channel+1) % len(self._channels)))
 
   # --- switch to previous channel   ------------------------------------------
 
@@ -361,7 +364,10 @@ class Radio(object):
     self.debug("switch to previous channel")
     # switch_channel expects a channel-number, while self._channel is
     # a channel index
-    self.switch_channel(1+((self._channel-1) % len(self._channels)))
+    if self._channel == -1:
+      self.switch_channel(len(self._channels))
+    else:
+      self.switch_channel(1+((self._channel-1) % len(self._channels)))
 
   # --- query current volume   ------------------------------------------------
 
@@ -474,6 +480,7 @@ class Radio(object):
 
     if self._player:
       self._name = None
+      self._channel = -1
       self.debug("stopping player ...")
       try:
         self._player.terminate()
