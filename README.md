@@ -7,6 +7,8 @@ This project implements a simple internet-radio using
   - a TTP229-based keypad
   - a LCD-display (typically with 2-4 rows and 16-20 columns)
 
+![](images/simple-radio.jpg "Pi-Zero with TTP229-keypad and 1602-LCD")
+
 Basic features of the implementation:
 
   - select predefined radio-stations using the keypad
