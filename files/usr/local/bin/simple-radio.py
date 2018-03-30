@@ -139,7 +139,8 @@ class Radio(object):
       try:
         if not self._name:
           self.debug("clearing lines")
-          lines.clear()
+          for i in range(self._rows-1):
+            lines.append(" ")
         else:
           line = self._disp_queue.get_nowait()
           self.debug("update_display: line: %s" % line)
@@ -443,9 +444,12 @@ class Radio(object):
     """ shutdown system """
 
     self.debug("processing shutdown")
+    self._stop_player()
     if not self._debug:
-      os.system("sudo /sbin/halt &")
-      os.kill(os.getpid(), signal.SIGINT)    # kill ourselves
+      try:
+        os.system("sudo /sbin/halt &")
+      except:
+        pass
     else:
       self.debug("no shutdown in debug-mode")
 
@@ -455,9 +459,12 @@ class Radio(object):
     """ reboot system """
 
     self.debug("processing reboot")
+    self._stop_player()
     if not self._debug:
-      os.system("sudo /sbin/reboot &")
-      os.kill(os.getpid(), signal.SIGINT)    # kill ourselves
+      try:
+        os.system("sudo /sbin/reboot &")
+      except:
+        pass
     else:
       self.debug("no reboot in debug-mode")
 
@@ -467,9 +474,12 @@ class Radio(object):
     """ restart system """
 
     self.debug("processing restart")
+    self._stop_player()
     if not self._debug:
-      os.system("sudo /bin/systemctl restart simple-radio.service &")
-      os.kill(os.getpid(), signal.SIGINT)    # kill ourselves
+      try:
+        os.system("sudo /bin/systemctl restart simple-radio.service &")
+      except:
+        pass
     else:
       self.debug("no restart in debug-mode")
 
