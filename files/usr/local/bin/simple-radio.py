@@ -380,8 +380,8 @@ class Radio(object):
     try:
       cmd = ( "amixer %s get %s|grep -o [0-9]*%%|sed 's/%%//'| head -n 1" %
               (self._mixer_opts,self._mixer) )
-      self._volume = subprocess.check_output(cmd,shell=True).splitlines()[0]
-      self.debug("current volume is: %s%%" % cur_vol)
+      self._volume = int(subprocess.check_output(cmd,shell=True).splitlines()[0])
+      self.debug("current volume is: %d%%" % self._volume)
       return self._volume
     except:
       if self._debug:
@@ -393,9 +393,9 @@ class Radio(object):
   def _set_volume(self,volume):
     """ set volume """
 
-    self.debug("setting volume to %s%%" % volume)
+    self.debug("setting volume to %d%%" % volume)
     try:
-      args = shlex.split("amixer %s -q set %s %s%%" %
+      args = shlex.split("amixer %s -q set %s %d%%" %
                                        (self._mixer_opts,self._mixer,volume))
       subprocess.call(args)
       self._volume = volume
