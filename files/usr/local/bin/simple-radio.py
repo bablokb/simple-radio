@@ -35,6 +35,7 @@ class Radio(object):
 
     self._player     = None               # start with no player
     self._channel    = -1                 # and no channel
+    self._volume     = -1                 # and unknown volume
     self._name       = ''                 # and no channel-name
     self._disp_queue = Queue.Queue()
     self.stop_event  = threading.Event()
@@ -46,6 +47,11 @@ class Radio(object):
 
     self._i2c    = parser.getint("GLOBAL","i2c")
     self._mixer  = parser.get("GLOBAL","mixer")
+    try:
+      self._mixer_opts = parser.get("GLOBAL", "mixer_opts")
+    except:
+      self._mixer_opts = ""
+
     default_path = os.path.join(os.path.expanduser("~"),"simple-radio.channels")
     try:
       self._channel_file = parser.get("GLOBAL", "channel_file")
@@ -190,21 +196,21 @@ class Radio(object):
 
     # main loop
     while True:
+      if self.stop_event.wait(0.01):
+        break
       poll_result = poll_obj.poll(POLL_TIME*1000)
       for (fd,event) in poll_result:
         # do some sanity checks
         if event & select.POLLHUP == select.POLLHUP:
+          # we just wait, continue and hope the key-provider comes back
           if self.stop_event.wait(POLL_TIME):
             break
-          # we just continue and hope the key-provider comes back
           continue
 
-      key = pipe.readline().rstrip('\n')
-      self.debug("key read: %s" % key)
-      if key:
-        self.process_key(key)
-      if self.stop_event.wait(0.01):
-        break
+        key = pipe.readline().rstrip('\n')
+        self.debug("key read: %s" % key)
+        if key:
+          self.process_key(key)
 
     # cleanup work after termination
     self.debug("terminating poll_keys on stop request")
@@ -357,13 +363,48 @@ class Radio(object):
     # a channel index
     self.switch_channel(1+((self._channel-1) % len(self._channels)))
 
+  # --- query current volume   ------------------------------------------------
+
+  def _get_volume(self):
+    """ query current volume """
+
+    if self._volume != -1:
+      return self._volume
+
+    try:
+      cmd = ( "amixer %s get %s|grep -o [0-9]*%%|sed 's/%%//'| head -n 1" %
+              (self._mixer_opts,self._mixer) )
+      self._volume = subprocess.check_output(cmd,shell=True).splitlines()[0]
+      self.debug("current volume is: %s%%" % cur_vol)
+      return self._volume
+    except:
+      if self._debug:
+        traceback.format_exc()
+      return -1
+
+  # --- set volume   ----------------------------------------------------------
+
+  def _set_volume(self,volume):
+    """ set volume """
+
+    self.debug("setting volume to %s%%" % volume)
+    try:
+      args = shlex.split("amixer %s -q set %s %s%%" %
+                                       (self._mixer_opts,self._mixer,volume))
+      subprocess.call(args)
+      self._volume = volume
+    except:
+      if self._debug:
+        traceback.format_exc()
+
   # --- turn volume up   ------------------------------------------------------
 
   def volume_up(self,_):
     """ turn volume up """
 
     self.debug("turn volume up")
-    self.debug("NOT IMPLEMENTED YET!")
+    current_volume = self._get_volume()
+    self._set_volume(min(current_volume+1,100))
 
   # --- turn volume down   ----------------------------------------------------
 
@@ -371,7 +412,8 @@ class Radio(object):
     """ turn volume down """
 
     self.debug("turn volume down")
-    self.debug("NOT IMPLEMENTED YET!")
+    current_volume = self._get_volume()
+    self._set_volume(max(current_volume-1,0))
 
   # --- toggle mute   ---------------------------------------------------------
 
