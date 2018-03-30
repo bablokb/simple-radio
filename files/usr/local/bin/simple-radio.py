@@ -154,7 +154,7 @@ class Radio(object):
         self._lcd.lcd_display_string(self._get_title(),1)
         nr = 2
         for line in lines:
-          self._lcd.lcd_display_string(line,nr)
+          self._lcd.lcd_display_string(self._fmt_line.format(line),nr)
           nr += 1
       else:
         # simulate display
