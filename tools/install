@@ -53,6 +53,24 @@ if [ -f /etc/${PROJECT}.conf.$rand ]; then
   echo -e "\nnew version of configuration file: /etc/${PROJECT}.conf.new"
 fi
 
+# --- configure system for i2c   --------------------------------------------
+
+restart=0
+
+# update /boot/config.txt
+if ! grep -q "^dtparam=i2c_arm=on" /boot/config.txt ; then
+  echo -e "[INFO] configuring i2c in /boot/config.txt" 2>&1
+  echo "dtparam=i2c_arm=on" >> /boot/config.txt
+  restart=1
+fi
+
+# update /etc/modules
+if ! grep -q "^i2c-dev" /etc/modules; then
+  echo -e "[INFO] configuring /etc/modules" 2>&1
+  echo "i2c-dev" >> /etc/modules
+  restart=1
+fi
+
 # --- fix user of service   -------------------------------------------------
 
 sed -i -e "/User=/s/=.*/=$USERNAME/" /etc/systemd/system/${PROJECT}.service
@@ -63,4 +81,7 @@ systemctl enable ${PROJECT}.service
 
 # --- final configuration is manual   ---------------------------------------
 
-echo -e "\n### Please edit /etc/${PROJECT}.conf and start ${PROJECT}.service"
+echo -e "\nPlease edit /etc/${PROJECT}.conf and start ${PROJECT}.service"
+if [ $restart -eq 1 ]; then
+  echo -e "\n### Reboot required. Please reboot the system! ###"
+fi
