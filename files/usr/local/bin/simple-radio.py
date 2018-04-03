@@ -315,13 +315,13 @@ class Radio(object):
     if nr == (self._channel+1):
       self.debug("already on channel %d" % nr)
       return
-    else:
-      self._channel = min(nr-1,len(self._channels)-1)
-      channel_name = self._channels[self._channel][0]
-      channel_url  = self._channels[self._channel][1]
 
     # kill current mpg123 process
     self._stop_player()
+
+    self._channel = min(nr-1,len(self._channels)-1)
+    channel_name = self._channels[self._channel][0]
+    channel_url  = self._channels[self._channel][1]
 
     # display name of channel on display
     self._name = channel_name
