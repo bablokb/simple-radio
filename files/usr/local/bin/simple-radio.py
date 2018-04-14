@@ -337,7 +337,7 @@ class Radio(object):
 
     self.debug("starting new channel %s" % self._name)
     self.debug("with args %r" % (args,))
-    self._player = subprocess.Popen(args,bufsize=-1,
+    self._player = subprocess.Popen(args,bufsize=1,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
     self._meta_event = threading.Event()
