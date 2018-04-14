@@ -137,11 +137,7 @@ class Radio(object):
     while True:
       # poll queue for data and append to deque
       try:
-        if not self._name:
-          self.debug("clearing lines")
-          for i in range(self._rows-1):
-            lines.append(" ")
-        else:
+        for  i in range(self._rows-1):
           line = self._disp_queue.get_nowait()
           self.debug("update_display: line: %s" % line)
           lines.append(line)
@@ -280,7 +276,7 @@ class Radio(object):
       return
 
     # clear all pending lines
-    self.debug("clearing queued lines")
+    self.debug("clearing queued lines ...")
     try:
       count = 0
       while not self._disp_queue.empty():
@@ -291,6 +287,9 @@ class Radio(object):
       if self._debug:
         traceback.format_exc()
       pass
+    self.debug("... and clearing lines on the display")
+    for i in range(self._rows-1):
+      self._disp_queue.put(" ")
 
   # --- process key   ---------------------------------------------------------
 
