@@ -123,7 +123,7 @@ class Radio(object):
       self.debug("no display detected")
       self.have_disp = False
       if self._debug:
-        traceback.format_exc()
+        print traceback.format_exc()
       pass
     
   # --- display-controller thread    -----------------------------------------
@@ -143,7 +143,7 @@ class Radio(object):
           lines.append(line)
       except:
         if self._debug:
-          traceback.format_exc()
+          print traceback.format_exc()
         pass
 
       # write data to display
@@ -267,7 +267,7 @@ class Radio(object):
     except:
       # typically an IO-exception due to closing of stdout
       if self._debug:
-        traceback.format_exc()
+        print traceback.format_exc()
       pass
 
     # check for error condition (this happens e.g. if the url is wrong)
@@ -285,7 +285,7 @@ class Radio(object):
         self._disp_queue.get_nowait()
     except:
       if self._debug:
-        traceback.format_exc()
+        print traceback.format_exc()
       pass
     self.debug("... and clearing lines on the display")
     for i in range(self._rows-1):
@@ -385,7 +385,7 @@ class Radio(object):
       return self._volume
     except:
       if self._debug:
-        traceback.format_exc()
+        print traceback.format_exc()
       return -1
 
   # --- set volume   ----------------------------------------------------------
@@ -401,7 +401,7 @@ class Radio(object):
       self._volume = volume
     except:
       if self._debug:
-        traceback.format_exc()
+        print traceback.format_exc()
 
   # --- turn volume up   ------------------------------------------------------
 
@@ -495,7 +495,7 @@ class Radio(object):
         self._player.terminate()
       except:
         if self._debug:
-          traceback.format_exc()
+          print traceback.format_exc()
         pass
       self._player = None
       self._meta_event.set()
