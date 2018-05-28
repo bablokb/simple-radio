@@ -68,6 +68,13 @@ class Radio(object):
     self._rows        = parser.getint("DISPLAY", "rows")
     self._cols        = parser.getint("DISPLAY", "cols")
     self._scroll_time = parser.getint("DISPLAY", "scroll")
+    try :
+      rule            = parser.get("DISPLAY","trans").split(",")
+      rule[0]         = rule[0].decode('UTF-8')
+      self._transmap  = self.build_map(rule)
+    except:
+      print traceback.format_exc()
+      self._transmap  = None
     self._fmt_title   = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
     self._fmt_line    = u"{0:%d.%ds}" % (self._cols,self._cols)
 
@@ -84,6 +91,14 @@ class Radio(object):
     if self._debug:
       sys.stderr.write("[DEBUG] %s\n" % text)
       sys.stderr.flush()
+
+  # --- build translation map for display   -----------------------------------
+
+  def build_map(self,rule):
+    map = {}
+    for i in range(len(rule[0])):
+      map[rule[0][i]] = int(rule[i+1],16)
+    return map
 
   # --- read channels   -------------------------------------------------------
 
@@ -117,7 +132,7 @@ class Radio(object):
 
     # initialize hardware
     try:
-      self._lcd = lcddriver.lcd(port=self._i2c)
+      self._lcd = lcddriver.lcd(port=self._i2c,tmap=self._transmap)
       self._lcd.lcd_display_string(self._get_title(),1)
     except:
       self.debug("no display detected")
@@ -204,10 +219,13 @@ class Radio(object):
             break
           continue
 
-        key = pipe.readline().rstrip('\n')
-        self.debug("key read: %s" % key)
-        if key:
-          self.process_key(key)
+        try:
+          key = pipe.readline().rstrip('\n')
+          self.debug("key read: %s" % key)
+          if key:
+            self.process_key(key)
+        except:
+          pass
 
     # cleanup work after termination
     self.debug("terminating poll_keys on stop request")

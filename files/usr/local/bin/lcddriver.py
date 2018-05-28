@@ -66,8 +66,9 @@ Rs = 0b00000001 # Register select bit
 
 class lcd:
    #initializes objects and lcd
-   def __init__(self,port=1):
+   def __init__(self,port=1,tmap=None):
       self.lcd_device = i2c_lib.i2c_device(ADDRESS,port)
+      self.tmap = tmap if tmap else {}
 
       self.lcd_write(0x03)
       self.lcd_write(0x03)
@@ -117,7 +118,10 @@ class lcd:
          self.lcd_write(0xD4)
 
       for char in string:
-         self.lcd_write(ord(char), Rs)
+         if self.tmap.has_key(char):
+            self.lcd_write(self.tmap[char], Rs)
+         else:
+            self.lcd_write(ord(char), Rs)
 
    # clear lcd and set to home
    def lcd_clear(self):
