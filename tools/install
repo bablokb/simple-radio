@@ -43,6 +43,7 @@ for f in `find $(dirname "$0")/../files/ -type f`; do
   chown root:root "${f#*files}"
 done
 chmod 755 /usr/local/bin/${PROJECT}.py
+chmod 755 /usr/local/bin/show_charset.py
 chmod 644 /etc/${PROJECT}.conf
 chmod 644 /etc/systemd/system/${PROJECT}.service
 
