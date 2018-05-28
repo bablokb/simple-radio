@@ -74,6 +74,7 @@ fi
 # --- fix user of service   -------------------------------------------------
 
 sed -i -e "/User=/s/=.*/=$USERNAME/" /etc/systemd/system/${PROJECT}.service
+usermod -a -G gpio,i2c,audio "$USERNAME"
 
 # --- activate service   ----------------------------------------------------
 
