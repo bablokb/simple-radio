@@ -13,6 +13,7 @@
 # -----------------------------------------------------------------------------
 
 import locale, os, sys, time, datetime, signal, select, re, shlex
+from   argparse import ArgumentParser
 import threading, signal, subprocess, traceback
 import Queue, collections
 import ConfigParser
@@ -26,6 +27,52 @@ except:
 
 FIFO_NAME="/var/run/ttp229-keypad.fifo"
 POLL_TIME=2
+
+# --- helper class for options   --------------------------------------------
+
+class Options(object):
+  pass
+
+# --- cmdline-parser   ------------------------------------------------------
+
+def get_parser():
+  """ configure cmdline-parser """
+
+  parser = ArgumentParser(add_help=False,
+    description='Simple radio')
+
+  parser.add_argument('-p', '--play', action='store_true',
+    dest='do_play', default=True,
+    help="play radio (default)")
+
+  parser.add_argument('-l', '--list', action='store_true',
+    dest='do_list', default=False,
+    help="display radio-channels")
+
+  parser.add_argument('-r', '--record', action='store_true',
+    dest='do_record', default=False,
+    help="record radio (needs channel as argument)")
+  parser.add_argument('-t', '--tdir', nargs=1,
+    metavar='target directory', default=[os.path.expanduser("~")],
+    dest='target_dir',
+    help='target directory for recordings')
+
+  parser.add_argument('-h', '--help', action='help',
+    help='print this help')
+
+  parser.add_argument('channel', nargs='?', metavar='channel',
+    default=None, help='channel number')
+  parser.add_argument('duration', nargs='?', metavar='duration',
+    default=60, help='duration of recording (default: 60)')
+  return parser
+
+# --- validate and fix options   ---------------------------------------------
+
+def check_options(options):
+  """ validate and fix options """
+  pass
+
+# --- main application class   ----------------------------------------------
 
 class Radio(object):
   """ singleton class for all methods of the program """
@@ -539,6 +586,11 @@ if __name__ == '__main__':
 
   # set local to default from environment
   locale.setlocale(locale.LC_ALL, '')
+
+  # parse commandline-arguments
+  opt_parser     = get_parser()
+  options        = opt_parser.parse_args(namespace=Options)
+  check_options(options)
 
   radio = Radio()
 
