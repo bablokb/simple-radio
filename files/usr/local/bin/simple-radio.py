@@ -602,7 +602,11 @@ class Radio(object):
   def do_list(self):
     """ list channels """
 
-    pass
+    LIST_CHANNEL_FMT="{0:2d} {1:14.14s}: {2:s}"
+    i = 1
+    for channel in self._channels:
+      print(LIST_CHANNEL_FMT.format(i,*channel))
+      i += 1
 
   # --- record radio   --------------------------------------------------------
 
