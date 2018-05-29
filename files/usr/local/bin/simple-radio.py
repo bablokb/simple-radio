@@ -84,6 +84,7 @@ class Radio(object):
     self._channel    = -1                 # and no channel
     self._volume     = -1                 # and unknown volume
     self._name       = ''                 # and no channel-name
+    self._threads    = []                 # thread-store
     self._disp_queue = Queue.Queue()
     self.stop_event  = threading.Event()
 
@@ -576,7 +577,7 @@ class Radio(object):
     self.debug("received signal, stopping program ...")
     self._stop_player()
     self.stop_event.set()
-    map(threading.Thread.join,[self.display_thread,self.key_thread])
+    map(threading.Thread.join,self._threads)
     self.debug("... done stopping program")
     sys.exit(0)
 
@@ -586,16 +587,18 @@ class Radio(object):
     """ play radio """
 
     # start display-controller thread
-    radio.init_display()
-    radio.display_thread = threading.Thread(target=radio.update_display)
-    radio.display_thread.start()
+    self.init_display()
+    display_thread = threading.Thread(target=radio.update_display)
+    self._threads.append(display_thread)
+    display_thread.start()
 
     if options.channel:
       self.switch_channel(options.channel)
 
     # start poll keys thread
-    radio.key_thread = threading.Thread(target=radio.poll_keys)
-    radio.key_thread.start()
+    keypad_thread = threading.Thread(target=radio.poll_keys)
+    self._threads.append(keypad_thread)
+    keypad_thread.start()
 
   # --- list channels   -------------------------------------------------------
 
