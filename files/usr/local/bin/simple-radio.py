@@ -580,6 +580,37 @@ class Radio(object):
     self.debug("... done stopping program")
     sys.exit(0)
 
+  # --- play radio   ----------------------------------------------------------
+
+  def do_play(self):
+    """ play radio """
+
+    # start display-controller thread
+    radio.init_display()
+    radio.display_thread = threading.Thread(target=radio.update_display)
+    radio.display_thread.start()
+
+    if options.channel:
+      self.switch_channel(options.channel)
+
+    # start poll keys thread
+    radio.key_thread = threading.Thread(target=radio.poll_keys)
+    radio.key_thread.start()
+
+  # --- list channels   -------------------------------------------------------
+
+  def do_list(self):
+    """ list channels """
+
+    pass
+
+  # --- record radio   --------------------------------------------------------
+
+  def do_record(self):
+    """ record radio """
+
+    pass
+
 # --- main program   ----------------------------------------------------------
 
 if __name__ == '__main__':
@@ -606,14 +637,11 @@ if __name__ == '__main__':
   # read channel-list
   radio.read_channels()
 
-  # start display-controller thread
-  radio.init_display()
-  radio.display_thread = threading.Thread(target=radio.update_display)
-  radio.display_thread.start()
-
-  # start poll keys thread
-  radio.key_thread = threading.Thread(target=radio.poll_keys)
-  radio.key_thread.start()
-
-  # main loop (wait for termination)
-  signal.pause()
+  if options.do_list:
+    radio.do_list()
+  elif options.do_record:
+    radio.do_record()
+    signal.pause()
+  else:
+    radio.do_play()
+    signal.pause()
