@@ -4,6 +4,8 @@
 #   - read channels from file
 #   - read keys from pipe and switch channels accordingly
 #   - display ICY-META-tags on display
+#   - record radio (inspired by https://github.com/radiorec)
+#     Copyright (C) 2013  Martin Brodbeck <martin@brodbeck-online.de>
 #
 # Author: Bernhard Bablok
 # License: GPL3
@@ -16,7 +18,7 @@ import locale, os, sys, time, datetime, signal, select, re, shlex
 from   argparse import ArgumentParser
 import threading, signal, subprocess, traceback
 import Queue, collections
-import ConfigParser
+import ConfigParser, urllib2
 
 try:
   import lcddriver
@@ -25,8 +27,9 @@ except:
   print("[WARNING] could not import lcddriver")
   have_lcd = False
 
-FIFO_NAME="/var/run/ttp229-keypad.fifo"
-POLL_TIME=2
+FIFO_NAME    = "/var/run/ttp229-keypad.fifo"
+POLL_TIME    = 2
+RECORD_CHUNK = 65536                 # with 128kbs, this should be around 4s
 
 # --- helper class for options   --------------------------------------------
 
@@ -70,7 +73,11 @@ def get_parser():
 
 def check_options(options):
   """ validate and fix options """
-  pass
+
+  # record needs a channel number
+  if options.do_record and not options.channel:
+    print "error: record-option (-r) needs channel nummber as argument"
+    sys.exit(3)
 
 # --- main application class   ----------------------------------------------
 
@@ -116,12 +123,14 @@ class Radio(object):
     self._rows        = parser.getint("DISPLAY", "rows")
     self._cols        = parser.getint("DISPLAY", "cols")
     self._scroll_time = parser.getint("DISPLAY", "scroll")
-    try :
+    try:
       rule            = parser.get("DISPLAY","trans").split(",")
+    except:
+      rule            = None
+    if rule:
       rule[0]         = rule[0].decode('UTF-8')
       self._transmap  = self.build_map(rule)
-    except:
-      print traceback.format_exc()
+    else:
       self._transmap  = None
     self._fmt_title   = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
     self._fmt_line    = u"{0:%d.%ds}" % (self._cols,self._cols)
@@ -356,6 +365,49 @@ class Radio(object):
     self.debug("... and clearing lines on the display")
     for i in range(self._rows-1):
       self._disp_queue.put(" ")
+
+  # --- record stream   -------------------------------------------------------
+
+  def record_stream(self,nr,duration):
+    """ record the given stream """
+
+    [ url,channel ] = self._channels[nr]
+    request = urllib2.Request(url)
+    cur_dt_string = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = "%s%s%s_%s" % (options.target_dir,os.sep,cur_dt_string,url)
+
+    content_type = request.get_header('Content-Type')
+    if(content_type == 'audio/mpeg'):
+      filename += '.mp3'
+    elif(content_type == 'application/ogg' or content_type == 'audio/ogg'):
+      filename += '.ogg'
+    elif(content_type == 'audio/x-mpegurl'):
+      url = None
+      conn = urllib2.urlopen(request)
+      with conn as stream:
+        if not line.decode('utf-8').startswith('#') and len(line) > 1:
+          url = line.decode('utf-8')
+          break
+      if url:
+        request = urllib2.Request(url)
+        filename += '.mp3'
+      else:
+        self._debug("could not parse m3u-playlist")
+        return
+    else:
+      self._debug('unknown content type "' + content_type + '". Assuming mp3.')
+      filename += '.mp3'
+
+    with open(filename, "wb") as stream:
+      self._debug('recording %s for %d minutes' % (nr,duration))
+      delta = datetime.timedelta(minutes=duration)
+      conn = urllib2.urlopen(request)
+      start = datetime.datetime.now()
+      while(not self._stop_event.is_set() and not conn.closed):
+        stream.write(conn.read(RECORD_CHUNK))
+        if datetime.datetime.now() - start > delta:
+          break
+      self._debug('recording finished')
 
   # --- process key   ---------------------------------------------------------
 
@@ -616,7 +668,10 @@ class Radio(object):
   def do_record(self):
     """ record radio """
 
-    pass
+    record_thread = threading.Thread(target=radio.record_stream,
+                                     option.channel,option.duration)
+    self._threads.append(record_thread)
+    record_thread.start()
 
 # --- main program   ----------------------------------------------------------
 
