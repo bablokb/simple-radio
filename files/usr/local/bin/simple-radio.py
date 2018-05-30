@@ -56,7 +56,7 @@ def get_parser():
     dest='do_record', default=False,
     help="record radio (needs channel as argument)")
   parser.add_argument('-t', '--tdir', nargs=1,
-    metavar='target directory', default=[os.path.expanduser("~")],
+    metavar='target directory', default=None,
     dest='target_dir',
     help='target directory for recordings')
 
@@ -66,7 +66,7 @@ def get_parser():
   parser.add_argument('channel', nargs='?', metavar='channel',
     default=None, help='channel number')
   parser.add_argument('duration', nargs='?', metavar='duration',
-    default=60, help='duration of recording (default: 60)')
+    default=0, help='duration of recording')
   return parser
 
 # --- validate and fix options   ---------------------------------------------
@@ -114,6 +114,7 @@ class Radio(object):
   def read_config(self,parser):
     """ read configuration from config-file """
 
+    # section [GLOBAL]
     self._debug       = boolean(self.get_value(parser,"GLOBAL", "debug",False))
     self._i2c    = int(self.get_value(parser,"GLOBAL","i2c",0))
     self._mixer  = self.get_value(parser,"GLOBAL","mixer","PCM")
@@ -125,6 +126,7 @@ class Radio(object):
                                          default_path)
     self._mpg123_opts = self.get_value(parser,"GLOBAL", "mpg123_opts","-b 1024")
 
+    # section [DISPLAY]
     have_disp         = boolean(self.get_value(parser,"DISPLAY", "display",False))
     self.have_disp    = have_lcd and have_disp
     self._rows        = int(self.get_value(parser,"DISPLAY", "rows",2))
@@ -140,7 +142,18 @@ class Radio(object):
     self._fmt_title   = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
     self._fmt_line    = u"{0:%d.%ds}" % (self._cols,self._cols)
 
-    # read key-mappings
+    # section [RECORD]
+    if options.target_dir:
+      self._target_dir = options.target_dir[0]
+    else:
+      self._target_dir = self.get_value(parser,"RECORD","dir",
+                                        os.path.expanduser("~"))
+    if options.duration:
+      self._duration = options.duration
+    else:
+      self._duration = self.get_value(parser,"RECORD","duration",60)
+
+    # section [KEYS]
     self._key_map = {}
     for (key,func_name) in parser.items("KEYS"):
       self._key_map[key] = func_name
@@ -373,7 +386,7 @@ class Radio(object):
 
   # --- record stream   -------------------------------------------------------
 
-  def record_stream(self,nr,duration):
+  def record_stream(self,nr):
     """ record the given stream """
 
     [ url,channel ] = self._channels[nr]
@@ -392,7 +405,7 @@ class Radio(object):
       with conn as stream:
         if not line.decode('utf-8').startswith('#') and len(line) > 1:
           url = line.decode('utf-8')
-          break
+          stream.close()
       if url:
         request = urllib2.Request(url)
         filename += '.mp3'
@@ -404,8 +417,8 @@ class Radio(object):
       filename += '.mp3'
 
     with open(filename, "wb") as stream:
-      self._debug('recording %s for %d minutes' % (nr,duration))
-      delta = datetime.timedelta(minutes=duration)
+      self._debug('recording %s for %d minutes' % (nr,self._duration))
+      delta = datetime.timedelta(minutes=self._duration)
       conn = urllib2.urlopen(request)
       start = datetime.datetime.now()
       while(not self._stop_event.is_set() and not conn.closed):
@@ -674,7 +687,7 @@ class Radio(object):
     """ record radio """
 
     record_thread = threading.Thread(target=radio.record_stream,
-                                     option.channel,option.duration)
+                                     args=(options.channel,))
     self._threads.append(record_thread)
     record_thread.start()
 
