@@ -95,39 +95,44 @@ class Radio(object):
     self._disp_queue = Queue.Queue()
     self.stop_event  = threading.Event()
 
+  # --- read configuration value   --------------------------------------------
+
+  def get_value(self,parser,section,option,default):
+    """ get value of config-variables and return given default if unset """
+
+    if parser.has_section(section):
+      try:
+        value = parser.get(section,option)
+      except:
+        value = default
+    else:
+      value = default
+    return value
+
   # --- read configuration   --------------------------------------------------
 
   def read_config(self,parser):
     """ read configuration from config-file """
 
-    self._i2c    = parser.getint("GLOBAL","i2c")
-    self._mixer  = parser.get("GLOBAL","mixer")
-    try:
-      self._mixer_opts = parser.get("GLOBAL", "mixer_opts")
-    except:
-      self._mixer_opts = ""
+    self._debug       = boolean(self.get_value(parser,"GLOBAL", "debug",False))
+    self._i2c    = int(self.get_value(parser,"GLOBAL","i2c",0))
+    self._mixer  = self.get_value(parser,"GLOBAL","mixer","PCM")
+    self._mixer  = self.get_value(parser,"GLOBAL","mixer_opts","")
 
-    default_path = os.path.join(os.path.expanduser("~"),"simple-radio.channels")
-    try:
-      self._channel_file = parser.get("GLOBAL", "channel_file")
-    except:
-      self._channel_file = default_path
+    default_path        = os.path.join(os.path.expanduser("~"),
+                                       "simple-radio.channels")
+    self._channel_file  = self.get_value(parser,"GLOBAL","channel_file",
+                                         default_path)
+    self._mpg123_opts = self.get_value(parser,"GLOBAL", "mpg123_opts","-b 1024")
 
-    try:
-      self._mpg123_opts = parser.get("GLOBAL", "mpg123_opts")
-    except:
-      self._mpg123_opts = "-b 1024"
-
-    self._debug       = parser.getboolean("GLOBAL", "debug")
-    self.have_disp    = have_lcd and parser.getboolean("DISPLAY", "display")
-    self._rows        = parser.getint("DISPLAY", "rows")
-    self._cols        = parser.getint("DISPLAY", "cols")
-    self._scroll_time = parser.getint("DISPLAY", "scroll")
-    try:
-      rule            = parser.get("DISPLAY","trans").split(",")
-    except:
-      rule            = None
+    have_disp         = boolean(self.get_value(parser,"DISPLAY", "display",False))
+    self.have_disp    = have_lcd and have_disp
+    self._rows        = int(self.get_value(parser,"DISPLAY", "rows",2))
+    self._cols        = int(self.get_value(parser,"DISPLAY", "cols",16))
+    self._scroll_time = int(self.get_value(parser,"DISPLAY", "scroll",3))
+    rule              = self.get_value(parser,"DISPLAY","trans",None)
     if rule:
+      rule            = rule.split(",")
       rule[0]         = rule[0].decode('UTF-8')
       self._transmap  = self.build_map(rule)
     else:
