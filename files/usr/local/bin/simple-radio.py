@@ -94,6 +94,7 @@ class Radio(object):
     self._threads    = []                 # thread-store
     self._disp_queue = Queue.Queue()
     self.stop_event  = threading.Event()
+    self.stop_rec    = None
 
   # --- read configuration value   --------------------------------------------
 
@@ -115,7 +116,7 @@ class Radio(object):
     """ read configuration from config-file """
 
     # section [GLOBAL]
-    self._debug       = boolean(self.get_value(parser,"GLOBAL", "debug",False))
+    self._debug  = self.get_value(parser,"GLOBAL", "debug","0") == "1"
     self._i2c    = int(self.get_value(parser,"GLOBAL","i2c",0))
     self._mixer  = self.get_value(parser,"GLOBAL","mixer","PCM")
     self._mixer  = self.get_value(parser,"GLOBAL","mixer_opts","")
@@ -127,7 +128,7 @@ class Radio(object):
     self._mpg123_opts = self.get_value(parser,"GLOBAL", "mpg123_opts","-b 1024")
 
     # section [DISPLAY]
-    have_disp         = boolean(self.get_value(parser,"DISPLAY", "display",False))
+    have_disp         = self.get_value(parser,"DISPLAY", "display","0") == "1"
     self.have_disp    = have_lcd and have_disp
     self._rows        = int(self.get_value(parser,"DISPLAY", "rows",2))
     self._cols        = int(self.get_value(parser,"DISPLAY", "cols",16))
@@ -143,15 +144,15 @@ class Radio(object):
     self._fmt_line    = u"{0:%d.%ds}" % (self._cols,self._cols)
 
     # section [RECORD]
-    if options.target_dir:
+    if not options.target_dir is None:
       self._target_dir = options.target_dir[0]
     else:
       self._target_dir = self.get_value(parser,"RECORD","dir",
                                         os.path.expanduser("~"))
     if options.duration:
-      self._duration = options.duration
+      self._duration = int(options.duration)
     else:
-      self._duration = self.get_value(parser,"RECORD","duration",60)
+      self._duration = int(self.get_value(parser,"RECORD","duration",60))
 
     # section [KEYS]
     self._key_map = {}
@@ -389,10 +390,10 @@ class Radio(object):
   def record_stream(self,nr):
     """ record the given stream """
 
-    [ url,channel ] = self._channels[nr]
+    [ channel,url ] = self._channels[nr-1]
     request = urllib2.Request(url)
     cur_dt_string = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = "%s%s%s_%s" % (options.target_dir,os.sep,cur_dt_string,url)
+    filename = "%s%s%s_%s" % (self._target_dir,os.sep,cur_dt_string,channel)
 
     content_type = request.get_header('Content-Type')
     if(content_type == 'audio/mpeg'):
@@ -413,19 +414,17 @@ class Radio(object):
         self._debug("could not parse m3u-playlist")
         return
     else:
-      self._debug('unknown content type "' + content_type + '". Assuming mp3.')
+      self.debug('unknown content type %r. Assuming mp3' % content_type)
       filename += '.mp3'
 
     with open(filename, "wb") as stream:
-      self._debug('recording %s for %d minutes' % (nr,self._duration))
-      delta = datetime.timedelta(minutes=self._duration)
+      self.debug('recording %s for %d minutes' % (channel,self._duration))
       conn = urllib2.urlopen(request)
-      start = datetime.datetime.now()
-      while(not self._stop_event.is_set() and not conn.closed):
+      while(not self.stop_rec.is_set()):
         stream.write(conn.read(RECORD_CHUNK))
-        if datetime.datetime.now() - start > delta:
-          break
-      self._debug('recording finished')
+
+    self.debug('recording finished')
+    self.stop_rec.set()
 
   # --- process key   ---------------------------------------------------------
 
@@ -504,6 +503,25 @@ class Radio(object):
       self.switch_channel(len(self._channels))
     else:
       self.switch_channel(1+((self._channel-1) % len(self._channels)))
+
+  # --- toggle recording   ----------------------------------------------------
+
+  def toggle_record(self,_):
+    """ toggle recording """
+
+    self.debug("toggle recording")
+
+    if self.stop_rec:
+      # recording is ongoing, so stop it
+      self.stop_rec.set()
+      self._rec_thread.join()
+      self.stop_rec = None
+    else:
+      # no recording ongoing, start it
+      self._rec_thread = threading.Thread(target=radio.record_stream,
+                                     args=(self._channel+1,))
+      self.stop_rec = threading.Event()
+      self._rec_thread.start()
 
   # --- query current volume   ------------------------------------------------
 
@@ -647,6 +665,9 @@ class Radio(object):
     self.debug("received signal, stopping program ...")
     self._stop_player()
     self.stop_event.set()
+    if self.stop_rec:
+      self.stop_rec.set()
+      self._rec_thread.join()
     map(threading.Thread.join,self._threads)
     self.debug("... done stopping program")
     sys.exit(0)
@@ -686,10 +707,15 @@ class Radio(object):
   def do_record(self):
     """ record radio """
 
-    record_thread = threading.Thread(target=radio.record_stream,
-                                     args=(options.channel,))
-    self._threads.append(record_thread)
-    record_thread.start()
+    self._rec_thread = threading.Thread(target=radio.record_stream,
+                                     args=(int(options.channel),))
+    self.stop_rec = threading.Event()
+    self._rec_thread.start()
+
+    if not self.stop_rec.wait(60*self._duration):
+      self.stop_rec.set()
+    if self._rec_thread.is_alive():
+      self._rec_thread.join()
 
 # --- main program   ----------------------------------------------------------
 
@@ -721,7 +747,6 @@ if __name__ == '__main__':
     radio.do_list()
   elif options.do_record:
     radio.do_record()
-    signal.pause()
   else:
     radio.do_play()
     signal.pause()
