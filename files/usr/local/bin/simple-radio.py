@@ -25,6 +25,7 @@ try:
   have_lcd = True
 except:
   print("[WARNING] could not import lcddriver")
+  print traceback.format_exc()
   have_lcd = False
 
 FIFO_NAME    = "/var/run/ttp229-keypad.fifo"

@@ -9,7 +9,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import sys, time
+import sys, time, traceback
 
 I2C_PORT   = 1
 SLEEP_TIME = 5
@@ -21,6 +21,7 @@ try:
   lcd = lcddriver.lcd(port=I2C_PORT)
   simulate = False
 except:
+  print traceback.format_exc()
   simulate = True
 
 if COLS == 20:
