@@ -88,14 +88,18 @@ class Radio(object):
   def __init__(self):
     """ initialization """
 
-    self._player     = None               # start with no player
-    self._channel    = -1                 # and no channel
-    self._volume     = -1                 # and unknown volume
-    self._name       = ''                 # and no channel-name
-    self._threads    = []                 # thread-store
-    self._disp_queue = Queue.Queue()
-    self.stop_event  = threading.Event()
-    self.stop_rec    = None
+    self._player       = None               # start with no player
+    self._channel      = -1                 # and no channel
+    self._volume       = -1                 # and unknown volume
+    self._name         = ''                 # and no channel-name
+    self._threads      = []                 # thread-store
+    self._disp_queue   = Queue.Queue()
+    self.stop_event    = threading.Event()
+    self.rec_stop      = None
+    self._rec_channel  = None
+    self._rec_start_dt = None
+    self._rec_show     = True               # toggle: show rec_channel or normal
+                                           #         title
 
   # --- read configuration value   --------------------------------------------
 
@@ -142,6 +146,7 @@ class Radio(object):
     else:
       self._transmap  = None
     self._fmt_title   = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
+    self._rec_fmt     = u"{0:%d.%ds} {1:02d}*{2:02d}" % (self._cols-6,self._cols-6)
     self._fmt_line    = u"{0:%d.%ds}" % (self._cols,self._cols)
 
     # section [RECORD]
@@ -194,13 +199,36 @@ class Radio(object):
     """ return title-line (1st line of display) """
 
     now = datetime.datetime.now()
-    if not self._name:
+    if self._name and self._rec_start_dt:
+      # listening radio and ongoing recording: toggle title-line
+      if self._rec_start_dt:
+        self._rec_show = False
+        return self._get_rec_title(now - self._rec_start_dt)
+      else:
+        self._rec_show = True
+        return self._fmt_title.format(self._name,now.strftime("%X"))
+    elif self._name:
+      # no recording, just show current channel
+      return self._fmt_title.format(self._name,now.strftime("%X"))
+    elif self._rec_start_dt:
+      # only recording: show channel and duration
+      return self._get_rec_title(now - self._rec_start_dt)
+    else:
       # return date + time
       return self._fmt_title.format(now.strftime("%x"),now.strftime("%X"))
-    else:
-      # return channel-name + time
-      return self._fmt_title.format(self._name,now.strftime("%X"))
 
+  # --- get title for recordings   -------------------------------------------
+
+  def _get_rec_title(self,duration):
+    """ get title during recordings """
+
+    duration = int(duration.total_seconds())
+    m, s = divmod(duration,60)
+    h, m = divmod(m,60)
+    if h > 0:
+      return self._rec_fmt.format(self._rec_channel,h,m)
+    else:
+      return self._rec_fmt.format(self._rec_channel,m,s)
 
   # --- initialize display   -------------------------------------------------
 
@@ -391,10 +419,11 @@ class Radio(object):
   def record_stream(self,nr):
     """ record the given stream """
 
-    [ channel,url ] = self._channels[nr-1]
+    [ self._rec_channel,url ] = self._channels[nr-1]
     request = urllib2.Request(url)
     cur_dt_string = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = "%s%s%s_%s" % (self._target_dir,os.sep,cur_dt_string,channel)
+    filename = "%s%s%s_%s" % (self._target_dir,os.sep,cur_dt_string,
+                                                             self._rec_channel)
 
     content_type = request.get_header('Content-Type')
     if(content_type == 'audio/mpeg'):
@@ -419,13 +448,15 @@ class Radio(object):
       filename += '.mp3'
 
     with open(filename, "wb") as stream:
-      self.debug('recording %s for %d minutes' % (channel,self._duration))
+      self.debug('recording %s for %d minutes' %
+                                              (self._rec_channel,self._duration))
       conn = urllib2.urlopen(request)
-      while(not self.stop_rec.is_set()):
+      self._rec_start_dt = datetime.datetime.now()
+      while(not self.rec_stop.is_set()):
         stream.write(conn.read(RECORD_CHUNK))
 
     self.debug('recording finished')
-    self.stop_rec.set()
+    self.rec_stop.set()
 
   # --- process key   ---------------------------------------------------------
 
@@ -512,16 +543,17 @@ class Radio(object):
 
     self.debug("toggle recording")
 
-    if self.stop_rec:
+    if self.rec_stop:
       # recording is ongoing, so stop it
-      self.stop_rec.set()
+      self.rec_stop.set()
       self._rec_thread.join()
-      self.stop_rec = None
+      self.rec_stop = None
+      self._rec_start_dt = None
     else:
       # no recording ongoing, start it
       self._rec_thread = threading.Thread(target=radio.record_stream,
                                      args=(self._channel+1,))
-      self.stop_rec = threading.Event()
+      self.rec_stop = threading.Event()
       self._rec_thread.start()
 
   # --- query current volume   ------------------------------------------------
@@ -666,8 +698,8 @@ class Radio(object):
     self.debug("received signal, stopping program ...")
     self._stop_player()
     self.stop_event.set()
-    if self.stop_rec:
-      self.stop_rec.set()
+    if self.rec_stop:
+      self.rec_stop.set()
       self._rec_thread.join()
     map(threading.Thread.join,self._threads)
     self.debug("... done stopping program")
@@ -710,11 +742,11 @@ class Radio(object):
 
     self._rec_thread = threading.Thread(target=radio.record_stream,
                                      args=(int(options.channel),))
-    self.stop_rec = threading.Event()
+    self.rec_stop = threading.Event()
     self._rec_thread.start()
 
-    if not self.stop_rec.wait(60*self._duration):
-      self.stop_rec.set()
+    if not self.rec_stop.wait(60*self._duration):
+      self.rec_stop.set()
     if self._rec_thread.is_alive():
       self._rec_thread.join()
 
