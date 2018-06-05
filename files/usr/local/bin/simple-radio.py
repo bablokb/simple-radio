@@ -161,9 +161,9 @@ class Radio(object):
       self._duration = int(self.get_value(parser,"RECORD","duration",60))
 
     # section [KEYS]
-    self._key_map = {}
+    self._radio_key_map = {}
     for (key,func_name) in parser.items("KEYS"):
-      self._key_map[key] = func_name
+      self._radio_key_map[key] = func_name
 
   # --- print debug messages   ------------------------------------------------
 
@@ -472,7 +472,7 @@ class Radio(object):
     """ map key to command and execute it"""
 
     self.debug("processing key %s" % key)
-    func_name = self._key_map[key]
+    func_name = self._radio_key_map[key]
     if hasattr(self,func_name):
       self.debug("executing: %s" % func_name)
       func = getattr(self,func_name)
