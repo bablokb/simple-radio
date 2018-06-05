@@ -165,6 +165,14 @@ class Radio(object):
     for (key,func_name) in parser.items("KEYS"):
       self._radio_key_map[key] = func_name
 
+    # section [PLAYER]
+    self._player_key_map = {}
+    for (key,func_name) in parser.items("PLAYER"):
+      self._player_key_map[key] = func_name
+
+    # the default key-map is the radio-keymap
+    self._key_map = self._radio_key_map
+
   # --- print debug messages   ------------------------------------------------
 
   def debug(self,text):
@@ -472,7 +480,7 @@ class Radio(object):
     """ map key to command and execute it"""
 
     self.debug("processing key %s" % key)
-    func_name = self._radio_key_map[key]
+    func_name = self._key_map[key]
     if hasattr(self,func_name):
       self.debug("executing: %s" % func_name)
       func = getattr(self,func_name)
