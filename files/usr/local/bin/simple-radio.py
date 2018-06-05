@@ -225,6 +225,14 @@ class Radio(object):
     duration = int(duration.total_seconds())
     m, s = divmod(duration,60)
     h, m = divmod(m,60)
+
+    # check if we have to stop recording
+    # actually, wie should do this in update_display, but here we have all
+    # the necessary information
+    if m >= self._duration and self.rec_stop:
+      self.rec_stop.set()
+
+    # return either mm:ss or hh:mm
     if h > 0:
       return self._rec_fmt.format(self._rec_channel,h,m)
     else:
