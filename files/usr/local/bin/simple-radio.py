@@ -278,38 +278,55 @@ class Radio(object):
 
     lines = collections.deque(maxlen=self._rows-1)
     while True:
-      # poll queue for data and append to deque
-      try:
-        for  i in range(self._rows-1):
-          line = self._disp_queue.get_nowait()
-          self.debug("update_display: line: %s" % line)
-          lines.append(line)
-      except:
-        if self._debug:
-          print traceback.format_exc()
-        pass
-
-      # write data to display
-      if self.have_disp:
-        self._lcd.lcd_display_string(self._get_title(),1)
-        nr = 2
-        for line in lines:
-          self._lcd.lcd_display_string(self._fmt_line.format(line),nr)
-          nr += 1
+      if self._radio_mode:
+        self._write_display_radio()
       else:
-        # simulate display
-        if not self._debug:
-          print("\033c")
-        print("-%s-" % (self._cols*'-'))
-        print("|%s|" % self._get_title())
-        for line in lines:
-          print("|%s|" % self._fmt_line.format(line))
-        print("-%s-" % (self._cols*'-'))
+        self._write_display_player()
 
       # sleep
       if self.stop_event.wait(self._scroll_time):
         self.debug("terminating update_display on stop request")
         return
+
+  # --- write to the display (radio mode)   ---------------------------------
+
+  def _write_display_radio(self):
+    """ write to the display (radio mode) """
+
+    # poll queue for data and append to deque
+    try:
+      for  i in range(self._rows-1):
+        line = self._disp_queue.get_nowait()
+        self.debug("update_display: line: %s" % line)
+        lines.append(line)
+    except Empty:
+      pass
+    except:
+      if self._debug:
+        print traceback.format_exc()
+
+    # write data to display
+    if self.have_disp:
+      self._lcd.lcd_display_string(self._get_title(),1)
+      nr = 2
+      for line in lines:
+        self._lcd.lcd_display_string(self._fmt_line.format(line),nr)
+        nr += 1
+    else:
+      # simulate display
+      if not self._debug:
+        print("\033c")
+      print("-%s-" % (self._cols*'-'))
+      print("|%s|" % self._get_title())
+      for line in lines:
+        print("|%s|" % self._fmt_line.format(line))
+      print("-%s-" % (self._cols*'-'))
+
+  # --- write to the display (player mode)   --------------------------------
+
+  def _write_display_player(self):
+    """ write to the display (player mode) """
+    pass
 
   # --- poll keys   ---------------------------------------------------------
 
