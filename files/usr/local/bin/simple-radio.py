@@ -89,6 +89,7 @@ class Radio(object):
     """ initialization """
 
     self._player       = None               # start with no player
+    self._radio_mode   = True               # default is radio
     self._channel      = -1                 # and no channel
     self._volume       = -1                 # and unknown volume
     self._name         = ''                 # and no channel-name
@@ -155,6 +156,12 @@ class Radio(object):
     else:
       self._target_dir = self.get_value(parser,"RECORD","dir",
                                         os.path.expanduser("~"))
+    if not os.path.exists(self._target_dir):
+      os.mkdir(self._target_dir)
+    elif not os.path.isdir(self._target_dir):
+      print("[ERROR] target-directory for recordings %s is not a directory" %
+            self._target_dir)
+
     if options.duration:
       self._duration = int(options.duration)
     else:
@@ -572,6 +579,27 @@ class Radio(object):
       self.rec_stop = threading.Event()
       self._rec_thread.start()
 
+  # --- switch to player mode   -----------------------------------------------
+
+  def start_playmode(self,_):
+    """ start player mode """
+
+    self.debug("starting player mode")
+    self._stop_player()
+    self._read_recordings()
+    self._radio_mode = False
+    self._key_map    = self._player_key_map
+
+  # --- exit player mode   ----------------------------------------------------
+
+  def exit_playmode(self,_):
+    """ start player mode """
+
+    self.debug("stopping player mode")
+    self._stop_player()
+    self._radio_mode = True
+    self._key_map    = self._radio_key_map
+
   # --- query current volume   ------------------------------------------------
 
   def _get_volume(self):
@@ -684,6 +712,23 @@ class Radio(object):
         pass
     else:
       self.debug("no restart in debug-mode")
+
+  # --- read existing recordings   --------------------------------------------
+
+  def _read_recordings(self):
+    """ read recordings from configured directory """
+
+    self.debug("reading recordings")
+
+    self._recordings = []
+    for f in os.listdir(self._target_dir):
+      rec_file = os.path.join(self._target_dir,f)
+      if not os.path.isfile(rec_file):
+        continue
+      # check extension
+      (_,ext) = os.path.splitext(rec_file)
+      if ext in [".mp3",".ogg",".wav"]:
+        self._recordings.append(rec_file)
 
   # --- stop player   ---------------------------------------------------------
 
