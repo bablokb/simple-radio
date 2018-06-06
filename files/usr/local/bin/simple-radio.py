@@ -326,6 +326,19 @@ class Radio(object):
 
   def _write_display_player(self):
     """ write to the display (player mode) """
+
+    if not self._player:
+      # show current filename
+      pass
+    else:
+      pass
+    # 1602:
+    # >>>> mm:ss/mm:ss
+    # channel
+    # 2004
+    # >>>>     mm:ss/mm:ss
+    # channel
+    # HH:MM DD.mm.YY
     pass
 
   # --- poll keys   ---------------------------------------------------------
@@ -387,7 +400,7 @@ class Radio(object):
     regex = re.compile(r".*ICY-META.*?'(.*)';$")
     try:
       while True:
-        if not self._name or self._meta_event.wait(0.01):
+        if not self._name or self._mpg123_event.wait(0.01):
           self.debug("terminating on stop request")
           break
         data = self._player.stdout.readline().decode('utf-8')
@@ -531,24 +544,30 @@ class Radio(object):
 
     # display name of channel on display
     self._name = channel_name
+    self.debug("starting new channel %s" % self._name)
+    self._start_mgp123(channel_url)
 
-    # spawn new mpg123 process
+  # --- start to play music   ------------------------------------------------
+
+  def _start_mpg123(self,name):
+    """ spawn new mpg123 process """
+
     args = ["mpg123"]
     opts = shlex.split(self._mpg123_opts)
     args += opts
-    if channel_url.endswith(".m3u"):
-      args += ["-@",channel_url]
+    if name.endswith(".m3u"):
+      args += ["-@",name]
     else:
-      args += [channel_url]
+      args += [name]
 
-    self.debug("starting new channel %s" % self._name)
     self.debug("with args %r" % (args,))
     self._player = subprocess.Popen(args,bufsize=1,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
-    self._meta_event = threading.Event()
-    self._meta_thread = threading.Thread(target=self.read_icy_meta)
-    self._meta_thread.start()
+    if self._radio_mode:
+      self._mpg123_event = threading.Event()
+      self._mpg123_thread = threading.Thread(target=self.read_icy_meta)
+      self._mpg123_thread.start()
 
   # --- switch to next channel   ----------------------------------------------
 
@@ -763,9 +782,11 @@ class Radio(object):
           print traceback.format_exc()
         pass
       self._player = None
-      self._meta_event.set()
-      self._meta_thread.join()
-      self._meta_event = None
+      if self._radio_mode:
+        self._mpg123_event.set()
+      self._mpg123_thread.join()
+      if self._radio_mode:
+        self._mpg123_event = None
       self.debug("... done stopping player")
     
   # --- setup signal handler   ------------------------------------------------
