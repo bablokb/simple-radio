@@ -23,9 +23,8 @@ import ConfigParser, urllib2
 try:
   import lcddriver
   have_lcd = True
-except:
+except ImportError:
   print("[WARNING] could not import lcddriver")
-  print traceback.format_exc()
   have_lcd = False
 
 FIFO_NAME    = "/var/run/ttp229-keypad.fifo"
@@ -88,7 +87,7 @@ class Radio(object):
   def __init__(self):
     """ initialization """
 
-    self._player       = None               # start with no player
+    self._mpg123       = None               # start with no player
     self._radio_mode   = True               # default is radio
     self._channel      = -1                 # and no channel
     self._volume       = -1                 # and unknown volume
@@ -131,7 +130,7 @@ class Radio(object):
                                        "simple-radio.channels")
     self._channel_file  = self.get_value(parser,"GLOBAL","channel_file",
                                          default_path)
-    self._mpg123_opts = self.get_value(parser,"GLOBAL", "mpg123_opts","-b 1024")
+    self._mpg123_opts   = self.get_value(parser,"GLOBAL", "mpg123_opts","-b 1024")
 
     # section [DISPLAY]
     have_disp         = self.get_value(parser,"DISPLAY", "display","0") == "1"
@@ -146,9 +145,10 @@ class Radio(object):
       self._transmap  = self.build_map(rule)
     else:
       self._transmap  = None
-    self._fmt_title   = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
-    self._rec_fmt     = u"{0:%d.%ds} {1:02d}*{2:02d}" % (self._cols-6,self._cols-6)
-    self._fmt_line    = u"{0:%d.%ds}" % (self._cols,self._cols)
+    self._radio_fmt_title = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
+    self._rec_fmt_title   = u"{0:%d.%ds} {1:02d}*{2:02d}" % (self._cols-6,self._cols-6)
+    self._fmt_line        = u"{0:%d.%ds}" % (self._cols,self._cols)
+    self._play_fmt_title = u"{0:%d.%ds} {1:5.5s}/{2:5.5s}" % (self._cols-11,self._cols-11)
 
     # section [RECORD]
     if not options.target_dir is None:
@@ -173,9 +173,9 @@ class Radio(object):
       self._radio_key_map[key] = func_name
 
     # section [PLAYER]
-    self._player_key_map = {}
+    self._play_key_map = {}
     for (key,func_name) in parser.items("PLAYER"):
-      self._player_key_map[key] = func_name
+      self._play_key_map[key] = func_name
 
     # the default key-map is the radio-keymap
     self._key_map = self._radio_key_map
@@ -216,21 +216,21 @@ class Radio(object):
     now = datetime.datetime.now()
     if self._name and self._rec_start_dt:
       # listening radio and ongoing recording: toggle title-line
-      if self._rec_start_dt:
+      if self._rec_show:
         self._rec_show = False
         return self._get_rec_title(now - self._rec_start_dt)
       else:
         self._rec_show = True
-        return self._fmt_title.format(self._name,now.strftime("%X"))
+        return self._radio_fmt_title.format(self._name,now.strftime("%X"))
     elif self._name:
       # no recording, just show current channel
-      return self._fmt_title.format(self._name,now.strftime("%X"))
+      return self._radio_fmt_title.format(self._name,now.strftime("%X"))
     elif self._rec_start_dt:
       # only recording: show channel and duration
       return self._get_rec_title(now - self._rec_start_dt)
     else:
       # return date + time
-      return self._fmt_title.format(now.strftime("%x"),now.strftime("%X"))
+      return self._radio_fmt_title.format(now.strftime("%x"),now.strftime("%X"))
 
   # --- get title for recordings   -------------------------------------------
 
@@ -249,9 +249,9 @@ class Radio(object):
 
     # return either mm:ss or hh:mm
     if h > 0:
-      return self._rec_fmt.format(self._rec_channel,h,m)
+      return self._rec_fmt_title.format(self._rec_channel,h,m)
     else:
-      return self._rec_fmt.format(self._rec_channel,m,s)
+      return self._rec_fmt_title.format(self._rec_channel,m,s)
 
   # --- initialize display   -------------------------------------------------
 
@@ -279,8 +279,10 @@ class Radio(object):
     lines = collections.deque(maxlen=self._rows-1)
     while True:
       if self._radio_mode:
-        self._write_display_radio()
+        self._write_display_radio(lines)
       else:
+        if not self._mpg123 is None and not self._mpg123.poll() is None:
+          self._stop_play("_")
         self._write_display_player()
 
       # sleep
@@ -290,7 +292,7 @@ class Radio(object):
 
   # --- write to the display (radio mode)   ---------------------------------
 
-  def _write_display_radio(self):
+  def _write_display_radio(self,lines):
     """ write to the display (radio mode) """
 
     # poll queue for data and append to deque
@@ -299,25 +301,36 @@ class Radio(object):
         line = self._disp_queue.get_nowait()
         self.debug("update_display: line: %s" % line)
         lines.append(line)
-    except Empty:
+    except Queue.Empty:
       pass
     except:
       if self._debug:
         print traceback.format_exc()
+    self._write_display(self._get_title(),lines)
+
+  # --- write to the display   ----------------------------------------------
+
+  def _write_display(self,title, lines):
+    """ write to the display """
+
+    # clear screen
+    if self.have_disp:
+      self._lcd.lcd_clear()
+    else:
+      if not self._debug:
+        print("\033c")
 
     # write data to display
     if self.have_disp:
-      self._lcd.lcd_display_string(self._get_title(),1)
+      self._lcd.lcd_display_string(title,1)
       nr = 2
       for line in lines:
         self._lcd.lcd_display_string(self._fmt_line.format(line),nr)
         nr += 1
     else:
       # simulate display
-      if not self._debug:
-        print("\033c")
       print("-%s-" % (self._cols*'-'))
-      print("|%s|" % self._get_title())
+      print("|%s|" % title)
       for line in lines:
         print("|%s|" % self._fmt_line.format(line))
       print("-%s-" % (self._cols*'-'))
@@ -327,19 +340,39 @@ class Radio(object):
   def _write_display_player(self):
     """ write to the display (player mode) """
 
-    if not self._player:
-      # show current filename
-      pass
+    # parse filename
+    if not self._rec_index is None:
+      (_,rec) = os.path.split(self._recordings[self._rec_index])
+      (rec,_) = os.path.splitext(rec)
+      [date,time,channel] = rec.split("_")
+      date = "%s.%s.%s" % (date[6:8],date[4:6],date[0:4])
+      time = "%s:%s" % (time[0:2],time[2:4])
+
+    lines=[]
+    if not self._mpg123:
+      # nothing is playing, show current recording
+      if self._rec_index is None:
+        title = 'no recordings'
+      else:
+        title = "%s %s" % (time,date)
+        lines.append(channel)
     else:
-      pass
-    # 1602:
-    # >>>> mm:ss/mm:ss
-    # channel
-    # 2004
-    # >>>>     mm:ss/mm:ss
-    # channel
-    # HH:MM DD.mm.YY
-    pass
+      # show progress
+      if self._play_pause:
+        curtime = self._play_pause_dt - self._play_start_dt
+      else:
+        curtime = datetime.datetime.now() - self._play_start_dt
+      m, s = divmod(int(curtime.total_seconds()),60)
+      h, m = divmod(m,60)
+      if h > 0:
+        curtime = "{0:02d}:{1:02d}".format(h,m)
+      else:
+        curtime = "{0:02d}:{1:02d}".format(m,s)
+      title = self._play_fmt_title.format('>>>>',curtime,self._play_tottime)
+      lines.append(channel)
+      if self._rows > 2:
+        lines.append("%s %s" % (time,date))
+    self._write_display(title,lines)
 
   # --- poll keys   ---------------------------------------------------------
 
@@ -383,7 +416,8 @@ class Radio(object):
           if key:
             self.process_key(key)
         except:
-          pass
+          if self._debug:
+            print traceback.format_exc()
 
     # cleanup work after termination
     self.debug("terminating poll_keys on stop request")
@@ -403,8 +437,8 @@ class Radio(object):
         if not self._name or self._mpg123_event.wait(0.01):
           self.debug("terminating on stop request")
           break
-        data = self._player.stdout.readline().decode('utf-8')
-        if data == '' and self._player.poll() is not None:
+        data = self._mpg123.stdout.readline().decode('utf-8')
+        if data == '' and self._mpg123.poll() is not None:
           break
         if data:
           self.debug("read_icy_meta: data: %s" % data)
@@ -517,6 +551,9 @@ class Radio(object):
     """ map key to command and execute it"""
 
     self.debug("processing key %s" % key)
+    if not self._key_map.has_key(key):
+      self.debug("unsupported key %s" % key)
+      return
     func_name = self._key_map[key]
     if hasattr(self,func_name):
       self.debug("executing: %s" % func_name)
@@ -536,7 +573,7 @@ class Radio(object):
       return
 
     # kill current mpg123 process
-    self._stop_player()
+    self._stop_mpg123()
 
     self._channel = min(nr-1,len(self._channels)-1)
     channel_name = self._channels[self._channel][0]
@@ -545,7 +582,7 @@ class Radio(object):
     # display name of channel on display
     self._name = channel_name
     self.debug("starting new channel %s" % self._name)
-    self._start_mgp123(channel_url)
+    self._start_mpg123(channel_url)
 
   # --- start to play music   ------------------------------------------------
 
@@ -561,7 +598,7 @@ class Radio(object):
       args += [name]
 
     self.debug("with args %r" % (args,))
-    self._player = subprocess.Popen(args,bufsize=1,
+    self._mpg123 = subprocess.Popen(args,bufsize=1,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
     if self._radio_mode:
@@ -621,10 +658,69 @@ class Radio(object):
     """ start player mode """
 
     self.debug("starting player mode")
-    self._stop_player()
+    self._stop_mpg123()
     self._read_recordings()
     self._radio_mode = False
-    self._key_map    = self._player_key_map
+    self._play_start_dt = None
+    self._key_map    = self._play_key_map
+
+  # --- toggle play/pause   ---------------------------------------------------
+
+  def toggle_play(self,_):
+    """ toggle play/pause """
+
+    if self._play_start_dt == None:
+      if not self._rec_index is None:
+        self.debug("starting playback")
+        self._play_tottime = "60:00"
+        # self._play_tottime = mp3info -p "%m:%s" filename oder %S -> Sekunden
+        self._play_pause = False
+        self._play_start_dt = datetime.datetime.now()
+        self._start_mpg123(self._recordings[self._rec_index])
+    elif not self._play_pause:
+      self.debug("pausing playback")
+      self._play_pause = True
+      self._play_pause_dt = datetime.datetime.now()
+      self._mpg123.send_signal(signal.SIGSTOP)
+    else:
+      self.debug("continuing playback")
+      self._play_pause = False
+      now = datetime.datetime.now()
+      self._play_start_dt += (now-self._play_pause_dt)
+      self._mpg123.send_signal(signal.SIGCONT)
+
+  # --- stop playing ----------------------------------------------------------
+
+  def stop_play(self,_):
+    """ stop playing """
+
+    self.debug("stopping playback")
+    self._stop_mpg123()
+    self._play_start_dt = None
+
+  # --- previous recording   --------------------------------------------------
+
+  def prev_recording(self,_):
+    """ switch to previous recording """
+
+    self.debug("switch to previous recording")
+    if self._rec_index is None:
+      return
+    else:
+      self._rec_index = (self._rec_index-1) % len(self._recordings)
+      self.debug("current recording: %s" % self._recordings[self._rec_index])
+
+  # --- next recording   -------------------------------------------------------
+
+  def next_recording(self,_):
+    """ switch to next recording """
+
+    self.debug("switch to next recording")
+    if self._rec_index is None:
+      return
+    else:
+      self._rec_index = (self._rec_index+1) % len(self._recordings)
+      self.debug("current recording: %s" % self._recordings[self._rec_index])
 
   # --- exit player mode   ----------------------------------------------------
 
@@ -632,7 +728,8 @@ class Radio(object):
     """ start player mode """
 
     self.debug("stopping player mode")
-    self._stop_player()
+    self._stop_mpg123()
+    self._play_start_dt = None
     self._radio_mode = True
     self._key_map    = self._radio_key_map
 
@@ -702,7 +799,7 @@ class Radio(object):
     """ turn radio off """
 
     self.debug("turning radio off")
-    self._stop_player()
+    self._stop_mpg123()
 
   # --- shutdown system   -----------------------------------------------------
 
@@ -710,7 +807,7 @@ class Radio(object):
     """ shutdown system """
 
     self.debug("processing shutdown")
-    self._stop_player()
+    self._stop_mpg123()
     if not self._debug:
       try:
         os.system("sudo /sbin/halt &")
@@ -725,7 +822,7 @@ class Radio(object):
     """ reboot system """
 
     self.debug("processing reboot")
-    self._stop_player()
+    self._stop_mpg123()
     if not self._debug:
       try:
         os.system("sudo /sbin/reboot &")
@@ -740,7 +837,7 @@ class Radio(object):
     """ restart system """
 
     self.debug("processing restart")
-    self._stop_player()
+    self._stop_mpg123()
     if not self._debug:
       try:
         os.system("sudo /bin/systemctl restart simple-radio.service &")
@@ -766,26 +863,29 @@ class Radio(object):
       if ext in [".mp3",".ogg",".wav"]:
         self._recordings.append(rec_file)
 
+    if len(self._recordings):
+      #TODO: sort desc
+      self._rec_index  = 0
+    else:
+      self._rec_index  = None
+
   # --- stop player   ---------------------------------------------------------
 
-  def _stop_player(self):
+  def _stop_mpg123(self):
     """ stop current player """
 
-    if self._player:
+    if self._mpg123:
       self._name = None
       self._channel = -1
       self.debug("stopping player ...")
       try:
-        self._player.terminate()
+        self._mpg123.terminate()
       except:
-        if self._debug:
-          print traceback.format_exc()
         pass
-      self._player = None
+      self._mpg123 = None
       if self._radio_mode:
         self._mpg123_event.set()
-      self._mpg123_thread.join()
-      if self._radio_mode:
+        self._mpg123_thread.join()
         self._mpg123_event = None
       self.debug("... done stopping player")
     
@@ -795,7 +895,7 @@ class Radio(object):
     """ signal-handler for clean shutdown """
 
     self.debug("received signal, stopping program ...")
-    self._stop_player()
+    self._stop_mpg123()
     self.stop_event.set()
     if self.rec_stop:
       self.rec_stop.set()
