@@ -24,7 +24,7 @@ PROJECT="simple-radio"
 
 # --- basic packages   ------------------------------------------------------
 
-PACKAGES="python-smbus mpg123"
+PACKAGES="python-smbus mpg123 mp3info"
 if [ -n "$PACKAGES" ]; then
   apt-get update
   apt-get -y install $PACKAGES
