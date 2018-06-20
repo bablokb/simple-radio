@@ -77,6 +77,13 @@ fi
 sed -i -e "/User=/s/=.*/=$USERNAME/" /etc/systemd/system/${PROJECT}.service
 usermod -a -G i2c,audio "$USERNAME"
 
+# --- copy channel file   ---------------------------------------------------
+
+if [ ! -f "/home/$USERNAME/simple-radio.channels" ]; then
+  cp ../examples/simple-radio.channels "/home/$USERNAME/simple-radio.channels"
+  chown "$USERNAME" "/home/$USERNAME/simple-radio.channels"
+fi
+
 # --- activate service   ----------------------------------------------------
 
 systemctl enable ${PROJECT}.service
