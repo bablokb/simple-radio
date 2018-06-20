@@ -920,6 +920,7 @@ class Radio(object):
     map(threading.Thread.join,self._threads)
     if self._have_disp:
       self._lcd.lcd_clear()
+      self._lcd.lcd_backlight('OFF')
     self.debug("... done stopping program")
     sys.exit(0)
 
