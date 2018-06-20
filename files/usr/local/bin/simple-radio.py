@@ -98,6 +98,7 @@ class Radio(object):
     self.rec_stop      = None
     self._rec_channel  = None
     self._rec_start_dt = None
+    self._recordings   = None
     self._rec_show     = True               # toggle: show rec_channel or normal
                                            #         title
 
@@ -313,12 +314,9 @@ class Radio(object):
   def _write_display(self,title, lines):
     """ write to the display """
 
-    # clear screen
-    if self.have_disp:
-      self._lcd.lcd_clear()
-    else:
-      if not self._debug:
-        print("\033c")
+    # clear screen in simulation-mode (unless debugging)
+    if not self.have_disp and not self._debug:
+      print("\033c")
 
     # write data to display
     if self.have_disp:
@@ -340,6 +338,15 @@ class Radio(object):
   def _write_display_player(self):
     """ write to the display (player mode) """
 
+    lines=[]
+
+    # check if currently are reading the recordings
+    if self._rec_index is None and self._recordings:
+      tile = "reading"
+      lines.append("recordings ...")
+      self._write_display(title,lines)
+      return
+
     # parse filename
     if not self._rec_index is None:
       (_,rec) = os.path.split(self._recordings[self._rec_index])
@@ -348,7 +355,6 @@ class Radio(object):
       date = "%s.%s.%s" % (date[6:8],date[4:6],date[0:4])
       time = "%s:%s" % (time[0:2],time[2:4])
 
-    lines=[]
     if not self._mpg123:
       # nothing is playing, show current recording
       if self._rec_index is None:
@@ -662,9 +668,9 @@ class Radio(object):
 
     self.debug("starting player mode")
     self._stop_mpg123()
-    self._read_recordings()
     self._radio_mode = False
     self._play_start_dt = None
+    self._read_recordings()
     self._key_map    = self._play_key_map
 
   # --- toggle play/pause   ---------------------------------------------------
@@ -739,6 +745,8 @@ class Radio(object):
     self.debug("stopping player mode")
     self._stop_mpg123()
     self._play_start_dt = None
+    self._rec_index  = None
+    self._recordings = None
     self._radio_mode = True
     self._key_map    = self._radio_key_map
 
