@@ -368,7 +368,10 @@ class Radio(object):
         curtime = "{0:02d}:{1:02d}".format(h,m)
       else:
         curtime = "{0:02d}:{1:02d}".format(m,s)
-      title = self._play_fmt_title.format('>>>>',curtime,self._play_tottime)
+      if self._play_pause:
+        title = self._play_fmt_title.format('pause',curtime,self._play_tottime)
+      else:
+        title = self._play_fmt_title.format('>>>>>',curtime,self._play_tottime)
       lines.append(channel)
       if self._rows > 2:
         lines.append("%s %s" % (time,date))
