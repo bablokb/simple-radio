@@ -703,24 +703,30 @@ class Radio(object):
   def prev_recording(self,_):
     """ switch to previous recording """
 
-    self.debug("switch to previous recording")
-    if self._rec_index is None:
-      return
+    if self._play_start_dt == None:
+      self.debug("switch to previous recording")
+      if self._rec_index is None:
+        return
+      else:
+        self._rec_index = (self._rec_index-1) % len(self._recordings)
+        self.debug("current recording: %s" % self._recordings[self._rec_index])
     else:
-      self._rec_index = (self._rec_index-1) % len(self._recordings)
-      self.debug("current recording: %s" % self._recordings[self._rec_index])
+      self.debug("playback in progress, ignoring command")
 
   # --- next recording   -------------------------------------------------------
 
   def next_recording(self,_):
     """ switch to next recording """
 
-    self.debug("switch to next recording")
-    if self._rec_index is None:
-      return
+    if self._play_start_dt == None:
+      self.debug("switch to next recording")
+      if self._rec_index is None:
+        return
+      else:
+        self._rec_index = (self._rec_index+1) % len(self._recordings)
+        self.debug("current recording: %s" % self._recordings[self._rec_index])
     else:
-      self._rec_index = (self._rec_index+1) % len(self._recordings)
-      self.debug("current recording: %s" % self._recordings[self._rec_index])
+      self.debug("playback in progress, ignoring command")
 
   # --- exit player mode   ----------------------------------------------------
 
