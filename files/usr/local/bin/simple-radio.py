@@ -918,6 +918,8 @@ class Radio(object):
       self.rec_stop.set()
       self._rec_thread.join()
     map(threading.Thread.join,self._threads)
+    if self._have_disp:
+      self._lcd.lcd_clear()
     self.debug("... done stopping program")
     sys.exit(0)
 
