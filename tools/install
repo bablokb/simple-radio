@@ -80,7 +80,7 @@ usermod -a -G i2c,audio "$USERNAME"
 # --- copy channel file   ---------------------------------------------------
 
 if [ ! -f "/home/$USERNAME/simple-radio.channels" ]; then
-  cp ../examples/simple-radio.channels "/home/$USERNAME/simple-radio.channels"
+  cp $(dirname "$0")/../examples/simple-radio.channels "/home/$USERNAME/simple-radio.channels"
   chown "$USERNAME" "/home/$USERNAME/simple-radio.channels"
 fi
 
