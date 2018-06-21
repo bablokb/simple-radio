@@ -149,7 +149,7 @@ class Radio(object):
     self._radio_fmt_title = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
     self._rec_fmt_title   = u"{0:%d.%ds} {1:02d}*{2:02d}" % (self._cols-6,self._cols-6)
     self._fmt_line        = u"{0:%d.%ds}" % (self._cols,self._cols)
-    self._play_fmt_title = u"{0:%d.%ds} {1:5.5s}/{2:5.5s}" % (self._cols-11,self._cols-11)
+    self._play_fmt_title = u"{0:%d.%ds}{1:5.5s}/{2:5.5s}" % (self._cols-11,self._cols-11)
 
     # section [RECORD]
     if not options.target_dir is None:
@@ -283,7 +283,7 @@ class Radio(object):
         self._write_display_radio(lines)
       else:
         if not self._mpg123 is None and not self._mpg123.poll() is None:
-          self._stop_play("_")
+          self.stop_play("_")
         self._write_display_player()
 
       # sleep
@@ -368,20 +368,28 @@ class Radio(object):
         curtime = self._play_pause_dt - self._play_start_dt
       else:
         curtime = datetime.datetime.now() - self._play_start_dt
-      m, s = divmod(int(curtime.total_seconds()),60)
-      h, m = divmod(m,60)
-      if h > 0:
-        curtime = "{0:02d}:{1:02d}".format(h,m)
-      else:
-        curtime = "{0:02d}:{1:02d}".format(m,s)
+      curtime = self._pp_time(int(curtime.total_seconds()))
+
       if self._play_pause:
         title = self._play_fmt_title.format('pause',curtime,self._play_tottime)
       else:
-        title = self._play_fmt_title.format('>>>>>',curtime,self._play_tottime)
+        title = self._play_fmt_title.format('>>>>',curtime,self._play_tottime)
       lines.append(channel)
       if self._rows > 2:
         lines.append("%s %s" % (time,date))
     self._write_display(title,lines)
+
+  # --- pretty print duration/time   ----------------------------------------
+
+  def _pp_time(self,seconds):
+    """ pritty-print time as mm:ss or hh:mm """
+
+    m, s = divmod(seconds,60)
+    h, m = divmod(m,60)
+    if h > 0:
+      return "{0:02d}:{1:02d}".format(h,m)
+    else:
+      return "{0:02d}:{1:02d}".format(m,s)
 
   # --- poll keys   ---------------------------------------------------------
 
@@ -681,16 +689,17 @@ class Radio(object):
     if self._play_start_dt == None:
       if not self._rec_index is None:
         self.debug("starting playback")
-        self._play_tottime = "60:00"
-        # self._play_tottime = mp3info -p "%m:%s" filename oder %S -> Sekunden
+        total_secs = int(subprocess.check_output(["mp3info", "-p","%S",
+                                            self._recordings[self._rec_index]]))
+        self._play_tottime = self._pp_time(total_secs)
         self._play_pause = False
         self._play_start_dt = datetime.datetime.now()
         self._start_mpg123(self._recordings[self._rec_index])
     elif not self._play_pause:
       self.debug("pausing playback")
       self._play_pause = True
-      self._play_pause_dt = datetime.datetime.now()
       self._mpg123.send_signal(signal.SIGSTOP)
+      self._play_pause_dt = datetime.datetime.now()
     else:
       self.debug("continuing playback")
       self._play_pause = False
@@ -745,6 +754,8 @@ class Radio(object):
     self.debug("stopping player mode")
     self._stop_mpg123()
     self._play_start_dt = None
+    if self.have_disp:
+      self._lcd.lcd_clear()
     self._rec_index  = None
     self._recordings = None
     self._radio_mode = True
@@ -881,8 +892,8 @@ class Radio(object):
         self._recordings.append(rec_file)
 
     if len(self._recordings):
-      #TODO: sort desc
-      self._rec_index  = 0
+      self._recordings.sort()
+      self._rec_index  = len(self._recordings)-1
     else:
       self._rec_index  = None
 
@@ -918,7 +929,7 @@ class Radio(object):
       self.rec_stop.set()
       self._rec_thread.join()
     map(threading.Thread.join,self._threads)
-    if self._have_disp:
+    if self.have_disp:
       self._lcd.lcd_clear()
       self._lcd.lcd_backlight('OFF')
     self.debug("... done stopping program")
