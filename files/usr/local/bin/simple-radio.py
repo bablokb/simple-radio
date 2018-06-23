@@ -20,6 +20,9 @@ import threading, signal, subprocess, traceback
 import Queue, collections
 import ConfigParser, urllib2
 
+from SRBase   import Base
+from SRKeypad import Keypad
+
 try:
   import lcddriver
   have_lcd = True
@@ -27,8 +30,6 @@ except ImportError:
   print("[WARNING] could not import lcddriver")
   have_lcd = False
 
-FIFO_NAME    = "/var/run/ttp229-keypad.fifo"
-POLL_TIME    = 2
 RECORD_CHUNK = 65536                 # with 128kbs, this should be around 4s
 
 # --- helper class for options   --------------------------------------------
@@ -81,12 +82,13 @@ def check_options(options):
 
 # --- main application class   ----------------------------------------------
 
-class Radio(object):
+class Radio(Base):
   """ singleton class for all methods of the program """
 
-  def __init__(self):
+  def __init__(self,parser):
     """ initialization """
 
+    self._parser       = parser
     self._mpg123       = None               # start with no player
     self._radio_mode   = True               # default is radio
     self._channel      = -1                 # and no channel
@@ -100,46 +102,34 @@ class Radio(object):
     self._rec_start_dt = None
     self._recordings   = None
     self._rec_show     = True               # toggle: show rec_channel or normal
-                                           #         title
-
-  # --- read configuration value   --------------------------------------------
-
-  def get_value(self,parser,section,option,default):
-    """ get value of config-variables and return given default if unset """
-
-    if parser.has_section(section):
-      try:
-        value = parser.get(section,option)
-      except:
-        value = default
-    else:
-      value = default
-    return value
+                                            #         title
+    self._keypad       = Keypad(self,parser,self.stop_event)
+    self._keypad.read_config()
 
   # --- read configuration   --------------------------------------------------
 
-  def read_config(self,parser):
+  def read_config(self):
     """ read configuration from config-file """
 
     # section [GLOBAL]
-    self._debug  = self.get_value(parser,"GLOBAL", "debug","0") == "1"
-    self._i2c    = int(self.get_value(parser,"GLOBAL","i2c",0))
-    self._mixer  = self.get_value(parser,"GLOBAL","mixer","PCM")
-    self._mixer  = self.get_value(parser,"GLOBAL","mixer_opts","")
+    self._debug  = self.get_value(self._parser,"GLOBAL", "debug","0") == "1"
+    self._i2c    = int(self.get_value(self._parser,"GLOBAL","i2c",0))
+    self._mixer  = self.get_value(self._parser,"GLOBAL","mixer","PCM")
+    self._mixer  = self.get_value(self._parser,"GLOBAL","mixer_opts","")
 
     default_path        = os.path.join(os.path.expanduser("~"),
                                        "simple-radio.channels")
-    self._channel_file  = self.get_value(parser,"GLOBAL","channel_file",
+    self._channel_file  = self.get_value(self._parser,"GLOBAL","channel_file",
                                          default_path)
-    self._mpg123_opts   = self.get_value(parser,"GLOBAL", "mpg123_opts","-b 1024")
+    self._mpg123_opts   = self.get_value(self._parser,"GLOBAL", "mpg123_opts","-b 1024")
 
     # section [DISPLAY]
-    have_disp         = self.get_value(parser,"DISPLAY", "display","0") == "1"
+    have_disp         = self.get_value(self._parser,"DISPLAY", "display","0") == "1"
     self.have_disp    = have_lcd and have_disp
-    self._rows        = int(self.get_value(parser,"DISPLAY", "rows",2))
-    self._cols        = int(self.get_value(parser,"DISPLAY", "cols",16))
-    self._scroll_time = int(self.get_value(parser,"DISPLAY", "scroll",3))
-    rule              = self.get_value(parser,"DISPLAY","trans",None)
+    self._rows        = int(self.get_value(self._parser,"DISPLAY", "rows",2))
+    self._cols        = int(self.get_value(self._parser,"DISPLAY", "cols",16))
+    self._scroll_time = int(self.get_value(self._parser,"DISPLAY", "scroll",3))
+    rule              = self.get_value(self._parser,"DISPLAY","trans",None)
     if rule:
       rule            = rule.split(",")
       rule[0]         = rule[0].decode('UTF-8')
@@ -155,7 +145,7 @@ class Radio(object):
     if not options.target_dir is None:
       self._target_dir = options.target_dir[0]
     else:
-      self._target_dir = self.get_value(parser,"RECORD","dir",
+      self._target_dir = self.get_value(self._parser,"RECORD","dir",
                                         os.path.expanduser("~"))
     if not os.path.exists(self._target_dir):
       os.mkdir(self._target_dir)
@@ -166,29 +156,7 @@ class Radio(object):
     if options.duration:
       self._duration = int(options.duration)
     else:
-      self._duration = int(self.get_value(parser,"RECORD","duration",60))
-
-    # section [KEYS]
-    self._radio_key_map = {}
-    for (key,func_name) in parser.items("KEYS"):
-      self._radio_key_map[key] = func_name
-
-    # section [PLAYER]
-    self._play_key_map = {}
-    for (key,func_name) in parser.items("PLAYER"):
-      self._play_key_map[key] = func_name
-
-    # the default key-map is the radio-keymap
-    self._key_map = self._radio_key_map
-
-  # --- print debug messages   ------------------------------------------------
-
-  def debug(self,text):
-    """ print debug-message """
-
-    if self._debug:
-      sys.stderr.write("[DEBUG] %s\n" % text)
-      sys.stderr.flush()
+      self._duration = int(self.get_value(self._parser,"RECORD","duration",60))
 
   # --- build translation map for display   -----------------------------------
 
@@ -391,56 +359,6 @@ class Radio(object):
     else:
       return "{0:02d}:{1:02d}".format(m,s)
 
-  # --- poll keys   ---------------------------------------------------------
-
-  def poll_keys(self):
-    """ poll keys from pipe """
-
-    self.debug("starting poll_keys")
-
-    # wait for pipe
-    pipe_wait = 0.5
-    while not os.path.exists(FIFO_NAME):
-      self.debug("waiting for pipe ...")
-      if pipe_wait < POLL_TIME/2:
-        pipe_wait *= 2
-      if self.stop_event.wait(pipe_wait):
-        # program ended, before we actually started
-        return
-
-    # make sure the open call does not block
-    p_fd = os.open(FIFO_NAME,os.O_RDONLY|os.O_NONBLOCK)
-    pipe = os.fdopen(p_fd,"r")
-    poll_obj = select.poll()
-    poll_obj.register(p_fd,select.POLLPRI|select.POLLIN)
-
-    # main loop
-    while True:
-      if self.stop_event.wait(0.01):
-        break
-      poll_result = poll_obj.poll(POLL_TIME*1000)
-      for (fd,event) in poll_result:
-        # do some sanity checks
-        if event & select.POLLHUP == select.POLLHUP:
-          # we just wait, continue and hope the key-provider comes back
-          if self.stop_event.wait(POLL_TIME):
-            break
-          continue
-
-        try:
-          key = pipe.readline().rstrip('\n')
-          self.debug("key read: %s" % key)
-          if key:
-            self.process_key(key)
-        except:
-          if self._debug:
-            print traceback.format_exc()
-
-    # cleanup work after termination
-    self.debug("terminating poll_keys on stop request")
-    poll_obj.unregister(pipe)
-    pipe.close()               # also closes the fd
-
   # --- read ICY-meta-tags during playback   ----------------------------------
 
   def read_icy_meta(self):
@@ -562,21 +480,6 @@ class Radio(object):
     self.debug('recording finished')
     self.rec_stop.set()
 
-  # --- process key   ---------------------------------------------------------
-
-  def process_key(self,key):
-    """ map key to command and execute it"""
-
-    self.debug("processing key %s" % key)
-    if not self._key_map.has_key(key):
-      self.debug("unsupported key %s" % key)
-      return
-    func_name = self._key_map[key]
-    if hasattr(self,func_name):
-      self.debug("executing: %s" % func_name)
-      func = getattr(self,func_name)
-      func(key)
-
   # --- switch channel   ------------------------------------------------------
 
   def switch_channel(self,nr):
@@ -679,7 +582,7 @@ class Radio(object):
     self._radio_mode = False
     self._play_start_dt = None
     self._read_recordings()
-    self._key_map    = self._play_key_map
+    self._keypad.set_keymap(Keypad.KEYPAD_PLAYER)
 
   # --- toggle play/pause   ---------------------------------------------------
 
@@ -759,7 +662,7 @@ class Radio(object):
     self._rec_index  = None
     self._recordings = None
     self._radio_mode = True
-    self._key_map    = self._radio_key_map
+    self._keypad.set_keymap(Keypad.KEYPAD_RADIO)
 
   # --- query current volume   ------------------------------------------------
 
@@ -950,9 +853,8 @@ class Radio(object):
       self.switch_channel(options.channel)
 
     # start poll keys thread
-    keypad_thread = threading.Thread(target=radio.poll_keys)
-    self._threads.append(keypad_thread)
-    keypad_thread.start()
+    self._threads.append(self._keypad)
+    self._keypad.start()
 
   # --- list channels   -------------------------------------------------------
 
@@ -992,12 +894,11 @@ if __name__ == '__main__':
   options        = opt_parser.parse_args(namespace=Options)
   check_options(options)
 
-  radio = Radio()
-
-  # read configuration
   parser = ConfigParser.RawConfigParser()
   parser.read('/etc/simple-radio.conf')
-  radio.read_config(parser)
+
+  radio = Radio(parser)
+  radio.read_config()
 
   # setup signal-handler
   signal.signal(signal.SIGTERM, radio.signal_handler)
