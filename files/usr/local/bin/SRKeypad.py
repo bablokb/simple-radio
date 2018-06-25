@@ -11,7 +11,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import threading, os
+import threading, os, select, traceback
 from threading import Thread
 
 from SRBase import Base
@@ -25,12 +25,10 @@ class Keypad(Thread,Base):
   KEYPAD_RADIO  = 0
   KEYPAD_PLAYER = 1
 
-  def __init__(self,radio,parser,event):
+  def __init__(self,app):
     """ initialization """
     super(Keypad,self).__init__(name="Keypad")
-    self._parser  = parser
-    self._radio   = radio
-    self._event   = event
+    self._app     = app
     self._keymaps = []
 
   # --- read configuration   --------------------------------------------------
@@ -39,28 +37,28 @@ class Keypad(Thread,Base):
     """ read configuration from config-file """
 
     # section [GLOBAL]
-    self._debug  = self.get_value(self._parser,"GLOBAL", "debug","0") == "1"
+    self._debug  = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
 
     # section [KEYS]
     key_map = {}
-    for (key,func_name) in self._parser.items("KEYS"):
+    for (key,func_name) in self._app.parser.items("KEYS"):
       key_map[key] = func_name
     self._keymaps.append(key_map)
 
     # section [PLAYER]
     key_map = {}
-    for (key,func_name) in self._parser.items("PLAYER"):
+    for (key,func_name) in self._app.parser.items("PLAYER"):
       key_map[key] = func_name
     self._keymaps.append(key_map)
 
     # the default key-map is the radio-keymap
-    self._key_map = Keypad.KEYPAD_RADIO
+    self._map_index = Keypad.KEYPAD_RADIO
 
   # --- set the keymap to use   ---------------------------------------------
 
   def set_keymap(self,map):
     """ set the keymap to use """
-    self._key_map = map
+    self._map_index = map
 
   # --- poll keys   ---------------------------------------------------------
 
@@ -75,7 +73,7 @@ class Keypad(Thread,Base):
       self.debug("waiting for pipe ...")
       if pipe_wait < POLL_TIME/2:
         pipe_wait *= 2
-      if self._event.wait(pipe_wait):
+      if self._app.stop_event.wait(pipe_wait):
         # program ended, before we actually started
         return
 
@@ -87,14 +85,14 @@ class Keypad(Thread,Base):
 
     # main loop
     while True:
-      if self._event.wait(0.01):
+      if self._app.stop_event.wait(0.01):
         break
       poll_result = poll_obj.poll(POLL_TIME*1000)
       for (fd,event) in poll_result:
         # do some sanity checks
         if event & select.POLLHUP == select.POLLHUP:
           # we just wait, continue and hope the key-provider comes back
-          if self._event.wait(POLL_TIME):
+          if self._app.stop_event.wait(POLL_TIME):
             break
           continue
 
@@ -118,11 +116,9 @@ class Keypad(Thread,Base):
     """ map key to command and execute it"""
 
     self.debug("processing key %s" % key)
-    if not self._key_map.has_key(key):
+    if not self._keymaps[self._map_index].has_key(key):
       self.debug("unsupported key %s" % key)
       return
-    func_name = self._key_map[key]
-    if hasattr(self._radio,func_name):
-      self.debug("executing: %s" % func_name)
-      func = getattr(self._radio,func_name)
-      func(key)
+    # delegate execution to class App
+    self._app.exec_func(self._keymaps[self._map_index][key],key)
+
