@@ -36,6 +36,8 @@ class Radio(Base):
     """ initialization """
 
     self._app          = app
+    app.register_funcs(self.get_funcs())
+
     self._keypad       = keypad             # TODO: remove again
     self._mpg123       = None               # start with no player
     self._radio_mode   = True               # default is radio
@@ -425,7 +427,7 @@ class Radio(Base):
 
   # --- switch channel   ------------------------------------------------------
 
-  def switch_channel(self,nr):
+  def func_switch_channel(self,nr):
     """ switch to given channel """
 
     nr = int(nr)
@@ -471,7 +473,7 @@ class Radio(Base):
 
   # --- switch to next channel   ----------------------------------------------
 
-  def next_channel(self,_):
+  def func_next_channel(self,_):
     """ switch to next channel """
 
     self.debug("switch to next channel")
@@ -484,7 +486,7 @@ class Radio(Base):
 
   # --- switch to previous channel   ------------------------------------------
 
-  def prev_channel(self,_):
+  def func_prev_channel(self,_):
     """ switch to previous channel """
 
     self.debug("switch to previous channel")
@@ -497,7 +499,7 @@ class Radio(Base):
 
   # --- toggle recording   ----------------------------------------------------
 
-  def toggle_record(self,_):
+  def func_toggle_record(self,_):
     """ toggle recording """
 
     self.debug("toggle recording")
@@ -517,7 +519,7 @@ class Radio(Base):
 
   # --- switch to player mode   -----------------------------------------------
 
-  def start_playmode(self,_):
+  def func_start_playmode(self,_):
     """ start player mode """
 
     self.debug("starting player mode")
@@ -529,7 +531,7 @@ class Radio(Base):
 
   # --- toggle play/pause   ---------------------------------------------------
 
-  def toggle_play(self,_):
+  def func_toggle_play(self,_):
     """ toggle play/pause """
 
     if self._play_start_dt == None:
@@ -555,7 +557,7 @@ class Radio(Base):
 
   # --- stop playing ----------------------------------------------------------
 
-  def stop_play(self,_):
+  def func_stop_play(self,_):
     """ stop playing """
 
     self.debug("stopping playback")
@@ -564,7 +566,7 @@ class Radio(Base):
 
   # --- previous recording   --------------------------------------------------
 
-  def prev_recording(self,_):
+  def func_prev_recording(self,_):
     """ switch to previous recording """
 
     if self._play_start_dt == None:
@@ -579,7 +581,7 @@ class Radio(Base):
 
   # --- next recording   -------------------------------------------------------
 
-  def next_recording(self,_):
+  def func_next_recording(self,_):
     """ switch to next recording """
 
     if self._play_start_dt == None:
@@ -594,7 +596,7 @@ class Radio(Base):
 
   # --- exit player mode   ----------------------------------------------------
 
-  def exit_playmode(self,_):
+  def func_exit_playmode(self,_):
     """ start player mode """
 
     self.debug("stopping player mode")
@@ -643,7 +645,7 @@ class Radio(Base):
 
   # --- turn volume up   ------------------------------------------------------
 
-  def volume_up(self,_):
+  def func_volume_up(self,_):
     """ turn volume up """
 
     self.debug("turn volume up")
@@ -652,7 +654,7 @@ class Radio(Base):
 
   # --- turn volume down   ----------------------------------------------------
 
-  def volume_down(self,_):
+  def func_volume_down(self,_):
     """ turn volume down """
 
     self.debug("turn volume down")
@@ -661,7 +663,7 @@ class Radio(Base):
 
   # --- toggle mute   ---------------------------------------------------------
 
-  def toggle_mute(self,_):
+  def func_toggle_mute(self,_):
     """ toggle mute """
 
     self.debug("toggle mute")
@@ -669,7 +671,7 @@ class Radio(Base):
 
   # --- turn radio off   ------------------------------------------------------
 
-  def radio_off(self,_):
+  def func_radio_off(self,_):
     """ turn radio off """
 
     self.debug("turning radio off")
