@@ -38,3 +38,11 @@ class Base(object):
     else:
       value = default
     return value
+
+  # --- return function-map of this class   -----------------------------------
+
+  def get_funcs(self):
+    """ return map of user-accessible functions """
+
+    return {key[5:]:getattr(self,key)
+            for key in dir(self) if key.startswith("func_")}
