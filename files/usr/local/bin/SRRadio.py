@@ -675,51 +675,6 @@ class Radio(Base):
     self.debug("turning radio off")
     self._stop_mpg123()
 
-  # --- shutdown system   -----------------------------------------------------
-
-  def shutdown(self,_):
-    """ shutdown system """
-
-    self.debug("processing shutdown")
-    self._stop_mpg123()
-    if not self._debug:
-      try:
-        os.system("sudo /sbin/halt &")
-      except:
-        pass
-    else:
-      self.debug("no shutdown in debug-mode")
-
-  # --- reboot system   -----------------------------------------------------
-
-  def reboot(self,_):
-    """ reboot system """
-
-    self.debug("processing reboot")
-    self._stop_mpg123()
-    if not self._debug:
-      try:
-        os.system("sudo /sbin/reboot &")
-      except:
-        pass
-    else:
-      self.debug("no reboot in debug-mode")
-
-  # --- restart system   ------------------------------------------------------
-
-  def restart(self,_):
-    """ restart system """
-
-    self.debug("processing restart")
-    self._stop_mpg123()
-    if not self._debug:
-      try:
-        os.system("sudo /bin/systemctl restart simple-radio.service &")
-      except:
-        pass
-    else:
-      self.debug("no restart in debug-mode")
-
   # --- read existing recordings   --------------------------------------------
 
   def _read_recordings(self):

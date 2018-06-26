@@ -117,6 +117,51 @@ class App(Base):
       self.debug("executing: %s" % func_name)
       self._functions[func_name](key)
 
+  # --- shutdown system   -----------------------------------------------------
+
+  def func_shutdown(self,_):
+    """ shutdown system """
+
+    self.debug("processing shutdown")
+    self.radio._stop_mpg123()
+    if not self._debug:
+      try:
+        os.system("sudo /sbin/halt &")
+      except:
+        pass
+    else:
+      self.debug("no shutdown in debug-mode")
+
+  # --- reboot system   -----------------------------------------------------
+
+  def func_reboot(self,_):
+    """ reboot system """
+
+    self.debug("processing reboot")
+    self.radio._stop_mpg123()
+    if not self._debug:
+      try:
+        os.system("sudo /sbin/reboot &")
+      except:
+        pass
+    else:
+      self.debug("no reboot in debug-mode")
+
+  # --- restart system   ------------------------------------------------------
+
+  def func_restart(self,_):
+    """ restart system """
+
+    self.debug("processing restart")
+    self.radio._stop_mpg123()
+    if not self._debug:
+      try:
+        os.system("sudo /bin/systemctl restart simple-radio.service &")
+      except:
+        pass
+    else:
+      self.debug("no restart in debug-mode")
+
   # --- setup signal handler   ------------------------------------------------
 
   def signal_handler(self,_signo, _stack_frame):
