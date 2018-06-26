@@ -84,6 +84,7 @@ class App(Base):
     self.read_config()
 
     self.stop_event = threading.Event()
+    self._functions = {}                    # maps user-functions to methods
 
     self._keypad = Keypad(self)
     self._keypad.read_config()
@@ -99,16 +100,21 @@ class App(Base):
     # section [GLOBAL]
     self._debug  = self.get_value(self.parser,"GLOBAL", "debug","0") == "1"
 
+  # --- register functions   --------------------------------------------------
+
+  def register_funcs(self,func_map):
+    """ register functions im map (called by every class providing functions) """
+
+    self._functions.update(func_map)
+
   # --- execute function   ----------------------------------------------------
 
   def exec_func(self,func_name,key):
     """ execute logical function """
 
-    #TODO: search function in App, Radio, Player, ...
-    if hasattr(self.radio,func_name):
+    if self._functions.has_key(func_name):
       self.debug("executing: %s" % func_name)
-      func = getattr(self.radio,func_name)
-      func(key)
+      self._functions[func_name](key)
 
   # --- setup signal handler   ------------------------------------------------
 
