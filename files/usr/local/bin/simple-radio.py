@@ -85,6 +85,7 @@ class App(Base):
 
     self.stop_event = threading.Event()
     self._functions = {}                    # maps user-functions to methods
+    self.register_funcs(self.get_funcs())
 
     self._keypad = Keypad(self)
     self._keypad.read_config()
