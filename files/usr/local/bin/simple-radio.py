@@ -19,9 +19,11 @@ from   argparse import ArgumentParser
 import threading, signal
 import ConfigParser
 
-from SRBase   import Base
-from SRKeypad import Keypad
-from SRRadio  import Radio
+from SRBase    import Base
+from SRKeypad  import Keypad
+from SRDisplay import Display
+from SRRadio   import Radio
+from SRMpg123  import Mpg123
 
 # --- helper class for options   --------------------------------------------
 
@@ -90,8 +92,14 @@ class App(Base):
     self._keypad = Keypad(self)
     self._keypad.read_config()
 
+    self.display = Display(self)
+    #self.display.read_config()
+
     self.radio = Radio(self,self._keypad)   # TODO: remove again
     self.radio.read_config()
+
+    self.mpg123 = Mpg123(self)
+    self.mpg123.read_config()
 
   # --- read configuration   --------------------------------------------------
 
@@ -123,7 +131,7 @@ class App(Base):
     """ shutdown system """
 
     self.debug("processing shutdown")
-    self.radio._stop_mpg123()
+    self.mpg123.stop()
     if not self._debug:
       try:
         os.system("sudo /sbin/halt &")
@@ -138,7 +146,7 @@ class App(Base):
     """ reboot system """
 
     self.debug("processing reboot")
-    self.radio._stop_mpg123()
+    self.mpg123.stop()
     if not self._debug:
       try:
         os.system("sudo /sbin/reboot &")
@@ -153,7 +161,7 @@ class App(Base):
     """ restart system """
 
     self.debug("processing restart")
-    self.radio._stop_mpg123()
+    self.mpg123.stop()
     if not self._debug:
       try:
         os.system("sudo /bin/systemctl restart simple-radio.service &")
@@ -168,7 +176,7 @@ class App(Base):
     """ signal-handler for clean shutdown """
 
     self.debug("received signal, stopping program ...")
-    self.radio._stop_mpg123()
+    self.mpg123.stop()
     self.stop_event.set()
     if self.radio.rec_stop:
       self.radio.rec_stop.set()

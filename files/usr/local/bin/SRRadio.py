@@ -11,7 +11,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import threading, os, time, datetime, re, shlex
+import threading, os, time, datetime, shlex
 import Queue, collections
 import threading, signal, subprocess, traceback
 import urllib2
@@ -39,13 +39,11 @@ class Radio(Base):
     app.register_funcs(self.get_funcs())
 
     self._keypad       = keypad             # TODO: remove again
-    self._mpg123       = None               # start with no player
     self._radio_mode   = True               # default is radio
     self._channel      = -1                 # and no channel
     self._volume       = -1                 # and unknown volume
     self._name         = ''                 # and no channel-name
     self._threads      = []                 # thread-store
-    self._disp_queue   = Queue.Queue()
     self.stop_event    = app.stop_event
     self.rec_stop      = None
     self._rec_channel  = None
@@ -69,7 +67,6 @@ class Radio(Base):
                                        "simple-radio.channels")
     self._channel_file  = self.get_value(self._app.parser,"GLOBAL","channel_file",
                                          default_path)
-    self._mpg123_opts   = self.get_value(self._app.parser,"GLOBAL", "mpg123_opts","-b 1024")
 
     # section [DISPLAY]
     have_disp         = self.get_value(self._app.parser,"DISPLAY", "display","0") == "1"
@@ -195,8 +192,6 @@ class Radio(Base):
       if self._radio_mode:
         self._write_display_radio(lines)
       else:
-        if not self._mpg123 is None and not self._mpg123.poll() is None:
-          self.stop_play("_")
         self._write_display_player()
 
       # sleep
@@ -212,7 +207,7 @@ class Radio(Base):
     # poll queue for data and append to deque
     try:
       for  i in range(self._rows-1):
-        line = self._disp_queue.get_nowait()
+        line = self._app.display.queue.get_nowait()
         self.debug("update_display: line: %s" % line)
         lines.append(line)
     except Queue.Empty:
@@ -268,7 +263,7 @@ class Radio(Base):
       date = "%s.%s.%s" % (date[6:8],date[4:6],date[0:4])
       time = "%s:%s" % (time[0:2],time[2:4])
 
-    if not self._mpg123:
+    if not self._app.mpg123.is_active():
       # nothing is playing, show current recording
       if self._rec_index is None:
         title = 'no recordings'
@@ -303,89 +298,6 @@ class Radio(Base):
       return "{0:02d}:{1:02d}".format(h,m)
     else:
       return "{0:02d}:{1:02d}".format(m,s)
-
-  # --- read ICY-meta-tags during playback   ----------------------------------
-
-  def read_icy_meta(self):
-    """ read ICY-meta-tags of current playback """
-
-    self.debug("starting read_icy_meta")
-
-    regex = re.compile(r".*ICY-META.*?'(.*)';$")
-    try:
-      while True:
-        if not self._name or self._mpg123_event.wait(0.01):
-          self.debug("terminating on stop request")
-          break
-        try:
-          data = self._mpg123.stdout.readline()
-          data = data.decode('utf-8')
-        except:
-          self.debug("could not decode: '%s'" % data)
-          self.debug("ignoring data")
-          continue
-        if data == '' and self._mpg123.poll() is not None:
-          break
-        if data:
-          self.debug("read_icy_meta: data: %s" % data)
-          if 'error:' in data:
-            line = data.rstrip('\n')
-          else:
-            # parse line
-            (line,count) = regex.subn(r'\1',data)
-            if not count:
-              self.debug("ignoring data")
-              continue
-            else:
-              line = line.rstrip('\n')
-
-          # break line in parts
-          self.debug("splitting line: %s" % line)
-          while len(line) > self._cols:
-            split = line[:self._cols].rfind(" ")
-            self.debug("split: %d" % split)
-            if split == -1:
-              # hard split within a word
-              split = self._cols
-              rest  = line[split:]
-            else:
-              # split at blank: drop blank
-              rest  = line[(split+1):]
-            self.debug("adding: %s" % line[:split])
-            self._disp_queue.put(line[:split])
-            line = rest
-            self.debug("text left: %s" % line)
-          if len(line):
-            self._disp_queue.put(line)
-          # send separator
-          self._disp_queue.put("%s%s" % (((self._cols-6)/2)*' ',6*'*'))
-
-    except:
-      # typically an IO-exception due to closing of stdout
-      if self._debug:
-        print traceback.format_exc()
-      pass
-
-    # check for error condition (this happens e.g. if the url is wrong)
-    if self._name:
-      # don't clear lines
-      return
-
-    # clear all pending lines
-    self.debug("clearing queued lines ...")
-    try:
-      count = 0
-      while not self._disp_queue.empty():
-        count += 1
-        self.debug("  ... %d" % count)
-        self._disp_queue.get_nowait()
-    except:
-      if self._debug:
-        print traceback.format_exc()
-      pass
-    self.debug("... and clearing lines on the display")
-    for i in range(self._rows-1):
-      self._disp_queue.put(" ")
 
   # --- record stream   -------------------------------------------------------
 
@@ -444,7 +356,9 @@ class Radio(Base):
       return
 
     # kill current mpg123 process
-    self._stop_mpg123()
+    self._name = None
+    self._channel = -1
+    self._app.mpg123.stop()
 
     self._channel = min(nr-1,len(self._channels)-1)
     channel_name = self._channels[self._channel][0]
@@ -453,29 +367,7 @@ class Radio(Base):
     # display name of channel on display
     self._name = channel_name
     self.debug("starting new channel %s" % self._name)
-    self._start_mpg123(channel_url)
-
-  # --- start to play music   ------------------------------------------------
-
-  def _start_mpg123(self,name):
-    """ spawn new mpg123 process """
-
-    args = ["mpg123"]
-    opts = shlex.split(self._mpg123_opts)
-    args += opts
-    if name.endswith(".m3u"):
-      args += ["-@",name]
-    else:
-      args += [name]
-
-    self.debug("with args %r" % (args,))
-    self._mpg123 = subprocess.Popen(args,bufsize=1,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT)
-    if self._radio_mode:
-      self._mpg123_event = threading.Event()
-      self._mpg123_thread = threading.Thread(target=self.read_icy_meta)
-      self._mpg123_thread.start()
+    self._app.mpg123.start(channel_url,True)
 
   # --- switch to next channel   ----------------------------------------------
 
@@ -529,7 +421,9 @@ class Radio(Base):
     """ start player mode """
 
     self.debug("starting player mode")
-    self._stop_mpg123()
+    self._name = None
+    self._channel = -1
+    self._app.mpg123.stop()
     self._radio_mode = False
     self._play_start_dt = None
     self._read_recordings()
@@ -548,18 +442,16 @@ class Radio(Base):
         self._play_tottime = self._pp_time(total_secs)
         self._play_pause = False
         self._play_start_dt = datetime.datetime.now()
-        self._start_mpg123(self._recordings[self._rec_index])
+        self._app.mpg123.start(self._recordings[self._rec_index],False)
     elif not self._play_pause:
-      self.debug("pausing playback")
       self._play_pause = True
-      self._mpg123.send_signal(signal.SIGSTOP)
+      self._app.mpg123.pause()
       self._play_pause_dt = datetime.datetime.now()
     else:
-      self.debug("continuing playback")
       self._play_pause = False
       now = datetime.datetime.now()
       self._play_start_dt += (now-self._play_pause_dt)
-      self._mpg123.send_signal(signal.SIGCONT)
+      self._app.mpg123.cont()
 
   # --- stop playing ----------------------------------------------------------
 
@@ -567,7 +459,7 @@ class Radio(Base):
     """ stop playing """
 
     self.debug("stopping playback")
-    self._stop_mpg123()
+    self._app.mpg123.stop()
     self._play_start_dt = None
 
   # --- previous recording   --------------------------------------------------
@@ -606,7 +498,7 @@ class Radio(Base):
     """ start player mode """
 
     self.debug("stopping player mode")
-    self._stop_mpg123()
+    self._app.mpg123.stop()
     self._play_start_dt = None
     if self.have_disp:
       self._lcd.lcd_clear()
@@ -681,7 +573,9 @@ class Radio(Base):
     """ turn radio off """
 
     self.debug("turning radio off")
-    self._stop_mpg123()
+    self._name    = None
+    self._channel = -1
+    self._app.mpg123.stop()
 
   # --- read existing recordings   --------------------------------------------
 
@@ -705,24 +599,3 @@ class Radio(Base):
       self._rec_index  = len(self._recordings)-1
     else:
       self._rec_index  = None
-
-  # --- stop player   ---------------------------------------------------------
-
-  def _stop_mpg123(self):
-    """ stop current player """
-
-    if self._mpg123:
-      self._name = None
-      self._channel = -1
-      self.debug("stopping player ...")
-      try:
-        self._mpg123.terminate()
-      except:
-        pass
-      self._mpg123 = None
-      if self._radio_mode:
-        self._mpg123_event.set()
-        self._mpg123_thread.join()
-        self._mpg123_event = None
-      self.debug("... done stopping player")
-    
