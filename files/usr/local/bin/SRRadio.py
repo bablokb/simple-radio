@@ -317,7 +317,13 @@ class Radio(Base):
         if not self._name or self._mpg123_event.wait(0.01):
           self.debug("terminating on stop request")
           break
-        data = self._mpg123.stdout.readline().decode('utf-8')
+        try:
+          data = self._mpg123.stdout.readline()
+          data = data.decode('utf-8')
+        except:
+          self.debug("could not decode: '%s'" % data)
+          self.debug("ignoring data")
+          continue
         if data == '' and self._mpg123.poll() is not None:
           break
         if data:
