@@ -13,6 +13,7 @@
 
 import threading, subprocess, os, shlex, re, traceback
 from threading import Thread
+import Queue, collections
 
 from SRBase import Base
 
@@ -23,9 +24,10 @@ class Mpg123(Base):
     """ initialization """
 
     self._app       = app
-    self._queue     = app.display.queue
     self._process   = None
     self._icy_event = None
+
+    self.icy_data   = None
 
   # --- read configuration   --------------------------------------------------
 
@@ -33,12 +35,10 @@ class Mpg123(Base):
     """ read configuration from config-file """
 
     # section [GLOBAL]
-    self._debug  = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
+    self._debug       = self.get_value(self._app.parser,
+                                       "GLOBAL", "debug","0") == "1"
     self._mpg123_opts = self.get_value(self._app.parser,"GLOBAL",
                                        "mpg123_opts","-b 1024")
-    # TODO: remove again, we need this during transition
-    self._cols        = int(self.get_value(self._app.parser,"DISPLAY", "cols",16))
-    self._rows        = int(self.get_value(self._app.parser,"DISPLAY", "rows",2))
 
   # --- active-state (return true if playing)   --------------------------------
 
@@ -65,6 +65,7 @@ class Mpg123(Base):
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
     if radio_mode:
+      self.icy_data   = Queue.Queue()
       self._icy_event = threading.Event()
       self._icy_thread = threading.Thread(target=self.read_icy_meta)
       self._icy_thread.start()
@@ -82,7 +83,7 @@ class Mpg123(Base):
 
   # --- continue playing   ----------------------------------------------------
 
-  def cont(self):
+  def resume(self):
     """ continue playing """
 
     self.debug("continuing playback")
@@ -105,6 +106,8 @@ class Mpg123(Base):
         self._icy_event.set()
         self._icy_thread.join()
         self._icy_event = None
+        self.icy_data   = None
+        self._app.display.clear_content()
       self.debug("... done stopping player")
 
   # --- read ICY-meta-tags during playback   ----------------------------------
@@ -143,48 +146,11 @@ class Mpg123(Base):
               continue
             else:
               line = line.rstrip('\n')
-
-          # TODO: move to display
-          # break line in parts
-          self.debug("splitting line: %s" % line)
-          while len(line) > self._cols:
-            split = line[:self._cols].rfind(" ")
-            self.debug("split: %d" % split)
-            if split == -1:
-              # hard split within a word
-              split = self._cols
-              rest  = line[split:]
-            else:
-              # split at blank: drop blank
-              rest  = line[(split+1):]
-            self.debug("adding: %s" % line[:split])
-            self._queue.put(line[:split])
-            line = rest
-            self.debug("text left: %s" % line)
-          if len(line):
-            self._queue.put(line)
-          # send separator
-          self._queue.put("%s%s" % (((self._cols-6)/2)*' ',6*'*'))
+          self.icy_data.put(line)
+          self.icy_data.put(6*'*')
 
     except:
       # typically an IO-exception due to closing of stdout
       if self._debug:
         print traceback.format_exc()
       pass
-
-    # clear all pending lines
-    self.debug("clearing queued lines ...")
-    try:
-      count = 0
-      while not self._queue.empty():
-        count += 1
-        self.debug("  ... %d" % count)
-        self._queue.get_nowait()
-    except:
-      if self._debug:
-        print traceback.format_exc()
-      pass
-    self.debug("... and clearing lines on the display")
-    for i in range(self._rows-1):
-      self._queue.put(" ")
-
