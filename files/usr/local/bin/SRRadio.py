@@ -43,7 +43,6 @@ class Radio(Base):
     self._channel      = -1                 # and no channel
     self._volume       = -1                 # and unknown volume
     self._name         = ''                 # and no channel-name
-    self._threads      = []                 # thread-store
     self.stop_event    = app.stop_event
     self.rec_stop      = None
     self._rec_channel  = None

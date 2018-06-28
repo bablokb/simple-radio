@@ -85,8 +85,9 @@ class App(Base):
     self.parser     = parser
     self.read_config()
 
-    self.stop_event = threading.Event()
-    self._functions = {}                    # maps user-functions to methods
+    self._threads    = []                   # thread-store
+    self.stop_event  = threading.Event()
+    self._functions  = {}                   # maps user-functions to methods
     self.register_funcs(self.get_funcs())
 
     self._keypad = Keypad(self)
@@ -181,7 +182,7 @@ class App(Base):
     if self.radio.rec_stop:
       self.radio.rec_stop.set()
       self.radio._rec_thread.join()
-    map(threading.Thread.join,self.radio._threads)
+    map(threading.Thread.join,self._threads)
     if self.radio.have_disp:
       self.radio._lcd.lcd_clear()
       self.radio._lcd.lcd_backlight('OFF')
@@ -196,14 +197,14 @@ class App(Base):
     # start display-controller thread
     self.radio.init_display()
     display_thread = threading.Thread(target=self.radio.update_display)
-    self.radio._threads.append(display_thread)
+    self._threads.append(display_thread)
     display_thread.start()
 
     if options.channel:
       self.radio.switch_channel(options.channel)
 
     # start poll keys thread
-    self.radio._threads.append(self._keypad)
+    self._threads.append(self._keypad)
     self._keypad.start()
 
   # --- list channels   -------------------------------------------------------
