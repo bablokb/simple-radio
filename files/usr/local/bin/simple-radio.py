@@ -90,14 +90,16 @@ class App(Base):
     self._functions  = {}                   # maps user-functions to methods
     self.register_funcs(self.get_funcs())
 
-    self._keypad = Keypad(self)
-    self._keypad.read_config()
+    self.keypad = Keypad(self)
+    self.keypad.read_config()
+
+    self.radio = Radio(self)
+    self.radio.read_config()
 
     self.display = Display(self)
-    #self.display.read_config()
-
-    self.radio = Radio(self,self._keypad)   # TODO: remove again
-    self.radio.read_config()
+    self.display.read_config()
+    self.display.set_content_provider(self.radio)
+    self.display.init()
 
     self.mpg123 = Mpg123(self)
     self.mpg123.read_config()
@@ -183,9 +185,6 @@ class App(Base):
       self.radio.rec_stop.set()
       self.radio._rec_thread.join()
     map(threading.Thread.join,self._threads)
-    if self.radio.have_disp:
-      self.radio._lcd.lcd_clear()
-      self.radio._lcd.lcd_backlight('OFF')
     self.debug("... done stopping program")
     sys.exit(0)
 
@@ -195,17 +194,15 @@ class App(Base):
     """ play radio """
 
     # start display-controller thread
-    self.radio.init_display()
-    display_thread = threading.Thread(target=self.radio.update_display)
-    self._threads.append(display_thread)
-    display_thread.start()
+    self._threads.append(self.display)
+    self.display.start()
 
     if options.channel:
       self.radio.switch_channel(options.channel)
 
     # start poll keys thread
-    self._threads.append(self._keypad)
-    self._keypad.start()
+    self._threads.append(self.keypad)
+    self.keypad.start()
 
   # --- list channels   -------------------------------------------------------
 
