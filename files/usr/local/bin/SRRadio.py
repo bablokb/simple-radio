@@ -16,13 +16,6 @@ import Queue, collections
 import threading, signal, subprocess, traceback
 import urllib2
 
-try:
-  import lcddriver
-  have_lcd = True
-except ImportError:
-  print("[WARNING] could not import lcddriver")
-  have_lcd = False
-
 from SRBase import Base
 from SRKeypad import Keypad
 
@@ -32,13 +25,13 @@ RECORD_CHUNK = 65536                 # with 128kbs, this should be around 4s
 class Radio(Base):
   """ Radio-controller """
 
-  def __init__(self,app,keypad):
+  def __init__(self,app):
     """ initialization """
 
     self._app          = app
     app.register_funcs(self.get_funcs())
 
-    self._keypad       = keypad             # TODO: remove again
+    self._keypad       = app.keypad         # TODO: remove again
     self._radio_mode   = True               # default is radio
     self._channel      = -1                 # and no channel
     self._volume       = -1                 # and unknown volume
@@ -57,10 +50,9 @@ class Radio(Base):
     """ read configuration from config-file """
 
     # section [GLOBAL]
-    self._debug  = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
-    self._i2c    = int(self.get_value(self._app.parser,"GLOBAL","i2c",0))
-    self._mixer  = self.get_value(self._app.parser,"GLOBAL","mixer","PCM")
-    self._mixer  = self.get_value(self._app.parser,"GLOBAL","mixer_opts","")
+    self._debug       = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
+    self._mixer       = self.get_value(self._app.parser,"GLOBAL","mixer","PCM")
+    self._mixer_opts  = self.get_value(self._app.parser,"GLOBAL","mixer_opts","")
 
     default_path        = os.path.join(os.path.expanduser("~"),
                                        "simple-radio.channels")
@@ -68,18 +60,9 @@ class Radio(Base):
                                          default_path)
 
     # section [DISPLAY]
-    have_disp         = self.get_value(self._app.parser,"DISPLAY", "display","0") == "1"
-    self.have_disp    = have_lcd and have_disp
     self._rows        = int(self.get_value(self._app.parser,"DISPLAY", "rows",2))
     self._cols        = int(self.get_value(self._app.parser,"DISPLAY", "cols",16))
-    self._scroll_time = int(self.get_value(self._app.parser,"DISPLAY", "scroll",3))
-    rule              = self.get_value(self._app.parser,"DISPLAY","trans",None)
-    if rule:
-      rule            = rule.split(",")
-      rule[0]         = rule[0].decode('UTF-8')
-      self._transmap  = self.build_map(rule)
-    else:
-      self._transmap  = None
+
     self._radio_fmt_title = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
     self._rec_fmt_title   = u"{0:%d.%ds} {1:02d}*{2:02d}" % (self._cols-6,self._cols-6)
     self._fmt_line        = u"{0:%d.%ds}" % (self._cols,self._cols)
@@ -102,14 +85,6 @@ class Radio(Base):
     else:
       self._duration = int(self.get_value(self._app.parser,"RECORD","duration",60))
 
-  # --- build translation map for display   -----------------------------------
-
-  def build_map(self,rule):
-    map = {}
-    for i in range(len(rule[0])):
-      map[rule[0][i]] = int(rule[i+1],16)
-    return map
-
   # --- read channels   -------------------------------------------------------
 
   def read_channels(self):
@@ -123,7 +98,7 @@ class Radio(Base):
 
   # --- get title-line (1st line of display)   -------------------------------
 
-  def _get_title(self):
+  def get_title(self):
     """ return title-line (1st line of display) """
 
     now = datetime.datetime.now()
@@ -166,79 +141,25 @@ class Radio(Base):
     else:
       return self._rec_fmt_title.format(self._rec_channel,m,s)
 
-  # --- initialize display   -------------------------------------------------
+  # --- get content for display   -------------------------------------------
 
-  def init_display(self):
-    """ initialize display """
+  def get_content(self):
+    """ read icy-data if available """
 
-    # initialize hardware
-    try:
-      self._lcd = lcddriver.lcd(port=self._i2c,tmap=self._transmap)
-      self._lcd.lcd_display_string(self._get_title(),1)
-    except NameError:
-      self.debug("no display detected")
-      self.have_disp = False
-    
-  # --- display-controller thread    -----------------------------------------
-
-  def update_display(self):
-    """ display-controller-thread """
-
-    self.debug("starting update_display")
-
-    lines = collections.deque(maxlen=self._rows-1)
-    while True:
-      if self._radio_mode:
-        self._write_display_radio(lines)
-      else:
-        self._write_display_player()
-
-      # sleep
-      if self.stop_event.wait(self._scroll_time):
-        self.debug("terminating update_display on stop request")
-        return
-
-  # --- write to the display (radio mode)   ---------------------------------
-
-  def _write_display_radio(self,lines):
-    """ write to the display (radio mode) """
-
-    # poll queue for data and append to deque
-    try:
-      for  i in range(self._rows-1):
-        line = self._app.display.queue.get_nowait()
-        self.debug("update_display: line: %s" % line)
-        lines.append(line)
-    except Queue.Empty:
-      pass
-    except:
-      if self._debug:
-        print traceback.format_exc()
-    self._write_display(self._get_title(),lines)
-
-  # --- write to the display   ----------------------------------------------
-
-  def _write_display(self,title, lines):
-    """ write to the display """
-
-    # clear screen in simulation-mode (unless debugging)
-    if not self.have_disp and not self._debug:
-      print("\033c")
-
-    # write data to display
-    if self.have_disp:
-      self._lcd.lcd_display_string(title,1)
-      nr = 2
-      for line in lines:
-        self._lcd.lcd_display_string(self._fmt_line.format(line),nr)
-        nr += 1
-    else:
-      # simulate display
-      print("-%s-" % (self._cols*'-'))
-      print("|%s|" % title)
-      for line in lines:
-        print("|%s|" % self._fmt_line.format(line))
-      print("-%s-" % (self._cols*'-'))
+    lines = []
+    if self._app.mpg123.icy_data:
+      while True:
+        try:
+          line = self._app.mpg123.icy_data.get_nowait()
+          self.debug("get_content: line: %s" % line)
+          lines.append(line)
+        except Queue.Empty:
+          break
+        except:
+          if self._debug:
+            print traceback.format_exc()
+          break
+    return lines
 
   # --- write to the display (player mode)   --------------------------------
 
@@ -450,7 +371,7 @@ class Radio(Base):
       self._play_pause = False
       now = datetime.datetime.now()
       self._play_start_dt += (now-self._play_pause_dt)
-      self._app.mpg123.cont()
+      self._app.mpg123.resume()
 
   # --- stop playing ----------------------------------------------------------
 
