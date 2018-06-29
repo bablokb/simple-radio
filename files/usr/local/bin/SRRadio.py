@@ -63,9 +63,6 @@ class Radio(Base):
     self._rows        = int(self.get_value(self._app.parser,"DISPLAY", "rows",2))
     self._cols        = int(self.get_value(self._app.parser,"DISPLAY", "cols",16))
 
-    self._radio_fmt_title = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
-    self._rec_fmt_title   = u"{0:%d.%ds} {1:02d}*{2:02d}" % (self._cols-6,self._cols-6)
-    self._fmt_line        = u"{0:%d.%ds}" % (self._cols,self._cols)
     self._play_fmt_title = u"{0:%d.%ds}{1:5.5s}/{2:5.5s}" % (self._cols-11,self._cols-11)
 
     # section [RECORD]
@@ -109,16 +106,16 @@ class Radio(Base):
         return self._get_rec_title(now - self._rec_start_dt)
       else:
         self._rec_show = True
-        return self._radio_fmt_title.format(self._name,now.strftime("%X"))
+        return (self._name,now.strftime("%H:%M"))
     elif self._name:
       # no recording, just show current channel
-      return self._radio_fmt_title.format(self._name,now.strftime("%X"))
+      return (self._name,now.strftime("%H:%M"))
     elif self._rec_start_dt:
       # only recording: show channel and duration
       return self._get_rec_title(now - self._rec_start_dt)
     else:
       # return date + time
-      return self._radio_fmt_title.format(now.strftime("%x"),now.strftime("%X"))
+      return (now.strftime("%x"),now.strftime("%H:%M"))
 
   # --- get title for recordings   -------------------------------------------
 
@@ -130,16 +127,16 @@ class Radio(Base):
     h, m = divmod(m,60)
 
     # check if we have to stop recording
-    # actually, wie should do this in update_display, but here we have all
+    # actually, wie should do this elsewhere, but here we have all
     # the necessary information
     if m >= self._duration and self.rec_stop:
       self.rec_stop.set()
 
     # return either mm:ss or hh:mm
     if h > 0:
-      return self._rec_fmt_title.format(self._rec_channel,h,m)
+      return (self._rec_channel,u"{0:02d}*{1:02d}".format(h,m))
     else:
-      return self._rec_fmt_title.format(self._rec_channel,m,s)
+      return (self._rec_channel,u"{0:02d}*{1:02d}".format(m,s))
 
   # --- get content for display   -------------------------------------------
 

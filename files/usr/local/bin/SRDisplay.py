@@ -84,10 +84,7 @@ class Display(Thread,Base):
 
     # initialize data structures
     self._content_deque   = collections.deque(maxlen=self._rows-1)
-    self._radio_fmt_title = u"{0:%d.%ds} {1:5.5s}" % (self._cols-6,self._cols-6)
-    self._rec_fmt_title   = u"{0:%d.%ds} {1:02d}*{2:02d}" % (self._cols-6,self._cols-6)
     self._fmt_line        = u"{0:%d.%ds}" % (self._cols,self._cols)
-    self._play_fmt_title = u"{0:%d.%ds}{1:5.5s}/{2:5.5s}" % (self._cols-11,self._cols-11)
 
     # initialize hardware
     try:
@@ -95,7 +92,8 @@ class Display(Thread,Base):
     except NameError:
       self.debug("no display detected")
       self.have_disp = False
-    self._update_display(self._content_provider.get_title(),[],True)
+    title = self._content_provider.get_title()
+    self._update_display(self._format_title(*title),[],True)
 
   # --- clear current content   ---------------------------------------------
 
@@ -182,6 +180,25 @@ class Display(Thread,Base):
         print("|%s|" % self._fmt_line.format(line))
       print("-%s-" % (self._cols*'-'))
 
+  # --- format title   -------------------------------------------------------
+
+  def _format_title(self,left,right):
+    """ format title """
+
+    len_left  = len(left)
+    len_right = len(right)
+    pad       = self._cols - 1 - len_left - len_right
+
+    if pad < 0:
+      # truncate left string
+      return left[:len_left+pad] + ' ' + right
+    elif pad == 0:
+      # perfect fit
+      return left + ' ' + right
+    else:
+      # pad between left and right
+      return left + ' ' + pad*' ' + right
+
   # --- display-controller thread    -----------------------------------------
 
   def run(self):
@@ -195,9 +212,9 @@ class Display(Thread,Base):
         content = self._content_provider.get_content()
         self._split_content(content)                   # split and push
       else:
-        title = ""
+        title = ("","")
       self._next_content()                             # pop lines to deque
-      self._update_display(title,self._content_deque)
+      self._update_display(self._format_title(*title),self._content_deque)
 
       # sleep
       if self._app.stop_event.wait(self._scroll_time):
