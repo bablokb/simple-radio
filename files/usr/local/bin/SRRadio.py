@@ -17,7 +17,6 @@ import threading, signal, subprocess, traceback
 import urllib2
 
 from SRBase import Base
-from SRKeypad import Keypad
 
 RECORD_CHUNK = 65536                 # with 128kbs, this should be around 4s
 
@@ -31,15 +30,13 @@ class Radio(Base):
     self._app          = app
     app.register_funcs(self.get_funcs())
 
-    self._keypad       = app.keypad         # TODO: remove again
-    self._radio_mode   = True               # default is radio
+    self._active       = True
     self._channel      = -1                 # and no channel
     self._name         = ''                 # and no channel-name
     self.stop_event    = app.stop_event
     self.rec_stop      = None
     self._rec_channel  = None
     self._rec_start_dt = None
-    self._recordings   = None
     self._rec_show     = True               # toggle: show rec_channel or normal
                                             #         title
 
@@ -54,12 +51,6 @@ class Radio(Base):
                                        "simple-radio.channels")
     self._channel_file  = self.get_value(self._app.parser,"GLOBAL","channel_file",
                                          default_path)
-
-    # section [DISPLAY]
-    self._rows        = int(self.get_value(self._app.parser,"DISPLAY", "rows",2))
-    self._cols        = int(self.get_value(self._app.parser,"DISPLAY", "cols",16))
-
-    self._play_fmt_title = u"{0:%d.%ds}{1:5.5s}/{2:5.5s}" % (self._cols-11,self._cols-11)
 
     # section [RECORD]
     if not self._app.options.target_dir is None:
@@ -88,6 +79,19 @@ class Radio(Base):
       for channel in f:
         channel = channel.rstrip('\n').decode('utf-8')
         self._channels.append(channel.split('@')) # channel: line with name@url
+
+  # --- set state   -----------------------------------------------------------
+
+  def set_state(self,active):
+    """ set state of object """
+
+    self._active = active
+
+    if active:
+      pass
+    else:
+      self._name    = None
+      self._channel = -1
 
   # --- get title-line (1st line of display)   -------------------------------
 
@@ -153,64 +157,6 @@ class Radio(Base):
             print traceback.format_exc()
           break
     return lines
-
-  # --- write to the display (player mode)   --------------------------------
-
-  def _write_display_player(self):
-    """ write to the display (player mode) """
-
-    lines=[]
-
-    # check if currently are reading the recordings
-    if self._rec_index is None and self._recordings:
-      tile = "reading"
-      lines.append("recordings ...")
-      self._write_display(title,lines)
-      return
-
-    # parse filename
-    if not self._rec_index is None:
-      (_,rec) = os.path.split(self._recordings[self._rec_index])
-      (rec,_) = os.path.splitext(rec)
-      [date,time,channel] = rec.split("_")
-      date = "%s.%s.%s" % (date[6:8],date[4:6],date[0:4])
-      time = "%s:%s" % (time[0:2],time[2:4])
-
-    if not self._app.mpg123.is_active():
-      # nothing is playing, show current recording
-      if self._rec_index is None:
-        title = 'no recordings'
-      else:
-        title = "%s %s" % (time,date)
-        lines.append(channel)
-    else:
-      # show progress
-      if self._play_pause:
-        curtime = self._play_pause_dt - self._play_start_dt
-      else:
-        curtime = datetime.datetime.now() - self._play_start_dt
-      curtime = self._pp_time(int(curtime.total_seconds()))
-
-      if self._play_pause:
-        title = self._play_fmt_title.format('pause',curtime,self._play_tottime)
-      else:
-        title = self._play_fmt_title.format('>>>>',curtime,self._play_tottime)
-      lines.append(channel)
-      if self._rows > 2:
-        lines.append("%s %s" % (time,date))
-    self._write_display(title,lines)
-
-  # --- pretty print duration/time   ----------------------------------------
-
-  def _pp_time(self,seconds):
-    """ pritty-print time as mm:ss or hh:mm """
-
-    m, s = divmod(seconds,60)
-    h, m = divmod(m,60)
-    if h > 0:
-      return "{0:02d}:{1:02d}".format(h,m)
-    else:
-      return "{0:02d}:{1:02d}".format(m,s)
 
   # --- record stream   -------------------------------------------------------
 
@@ -328,98 +274,6 @@ class Radio(Base):
       self.rec_stop = threading.Event()
       self._rec_thread.start()
 
-  # --- switch to player mode   -----------------------------------------------
-
-  def func_start_playmode(self,_):
-    """ start player mode """
-
-    self.debug("starting player mode")
-    self._name = None
-    self._channel = -1
-    self._app.mpg123.stop()
-    self._radio_mode = False
-    self._play_start_dt = None
-    self._read_recordings()
-    self._keypad.set_keymap(Keypad.KEYPAD_PLAYER)
-
-  # --- toggle play/pause   ---------------------------------------------------
-
-  def func_toggle_play(self,_):
-    """ toggle play/pause """
-
-    if self._play_start_dt == None:
-      if not self._rec_index is None:
-        self.debug("starting playback")
-        total_secs = int(subprocess.check_output(["mp3info", "-p","%S",
-                                            self._recordings[self._rec_index]]))
-        self._play_tottime = self._pp_time(total_secs)
-        self._play_pause = False
-        self._play_start_dt = datetime.datetime.now()
-        self._app.mpg123.start(self._recordings[self._rec_index],False)
-    elif not self._play_pause:
-      self._play_pause = True
-      self._app.mpg123.pause()
-      self._play_pause_dt = datetime.datetime.now()
-    else:
-      self._play_pause = False
-      now = datetime.datetime.now()
-      self._play_start_dt += (now-self._play_pause_dt)
-      self._app.mpg123.resume()
-
-  # --- stop playing ----------------------------------------------------------
-
-  def func_stop_play(self,_):
-    """ stop playing """
-
-    self.debug("stopping playback")
-    self._app.mpg123.stop()
-    self._play_start_dt = None
-
-  # --- previous recording   --------------------------------------------------
-
-  def func_prev_recording(self,_):
-    """ switch to previous recording """
-
-    if self._play_start_dt == None:
-      self.debug("switch to previous recording")
-      if self._rec_index is None:
-        return
-      else:
-        self._rec_index = (self._rec_index-1) % len(self._recordings)
-        self.debug("current recording: %s" % self._recordings[self._rec_index])
-    else:
-      self.debug("playback in progress, ignoring command")
-
-  # --- next recording   -------------------------------------------------------
-
-  def func_next_recording(self,_):
-    """ switch to next recording """
-
-    if self._play_start_dt == None:
-      self.debug("switch to next recording")
-      if self._rec_index is None:
-        return
-      else:
-        self._rec_index = (self._rec_index+1) % len(self._recordings)
-        self.debug("current recording: %s" % self._recordings[self._rec_index])
-    else:
-      self.debug("playback in progress, ignoring command")
-
-  # --- exit player mode   ----------------------------------------------------
-
-  def func_exit_playmode(self,_):
-    """ start player mode """
-
-    self.debug("stopping player mode")
-    self._app.mpg123.stop()
-    self._play_start_dt = None
-    if self.have_disp:
-      self._lcd.lcd_clear()
-    self._rec_index  = None
-    self._recordings = None
-    self._radio_mode = True
-    self._keypad.set_keymap(Keypad.KEYPAD_RADIO)
-
   # --- turn radio off   ------------------------------------------------------
 
   def func_radio_off(self,_):
@@ -429,26 +283,3 @@ class Radio(Base):
     self._name    = None
     self._channel = -1
     self._app.mpg123.stop()
-
-  # --- read existing recordings   --------------------------------------------
-
-  def _read_recordings(self):
-    """ read recordings from configured directory """
-
-    self.debug("reading recordings")
-
-    self._recordings = []
-    for f in os.listdir(self._target_dir):
-      rec_file = os.path.join(self._target_dir,f)
-      if not os.path.isfile(rec_file):
-        continue
-      # check extension
-      (_,ext) = os.path.splitext(rec_file)
-      if ext in [".mp3",".ogg",".wav"]:
-        self._recordings.append(rec_file)
-
-    if len(self._recordings):
-      self._recordings.sort()
-      self._rec_index  = len(self._recordings)-1
-    else:
-      self._rec_index  = None
