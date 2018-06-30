@@ -24,6 +24,7 @@ from SRKeypad  import Keypad
 from SRDisplay import Display
 from SRRadio   import Radio
 from SRMpg123  import Mpg123
+from SRAmp     import Amp
 
 # --- helper class for options   --------------------------------------------
 
@@ -103,6 +104,8 @@ class App(Base):
 
     self.mpg123 = Mpg123(self)
     self.mpg123.read_config()
+
+    self.amp = Amp(self)
 
   # --- read configuration   --------------------------------------------------
 
