@@ -23,6 +23,7 @@ from SRBase    import Base
 from SRKeypad  import Keypad
 from SRDisplay import Display
 from SRRadio   import Radio
+from SRPlayer  import Player
 from SRMpg123  import Mpg123
 from SRAmp     import Amp
 
@@ -97,6 +98,8 @@ class App(Base):
     self.radio = Radio(self)
     self.radio.read_config()
 
+    self.player =  Player(self)
+
     self.display = Display(self)
     self.display.read_config()
     self.display.set_content_provider(self.radio)
@@ -130,6 +133,31 @@ class App(Base):
     if self._functions.has_key(func_name):
       self.debug("executing: %s" % func_name)
       self._functions[func_name](key)
+
+  # --- switch to player mode   -----------------------------------------------
+
+  def func_start_playmode(self,_):
+    """ start player mode """
+
+    self.debug("starting player mode")
+    self.radio.set_state(False)
+    self.mpg123.stop()
+    self.keypad.set_keymap(Keypad.KEYPAD_PLAYER)
+    self.player.set_state(True)
+    self.display.set_content_provider(self.player)
+
+  # --- exit player mode   ----------------------------------------------------
+
+  def func_exit_playmode(self,_):
+    """ start player mode """
+
+    self.debug("stopping player mode")
+    self.player.set_state(False)
+    self.mpg123.stop()
+    self.display.clear()
+    self.keypad.set_keymap(Keypad.KEYPAD_RADIO)
+    self.display.set_content_provider(self.radio)
+    self.radio.set_state(True)
 
   # --- shutdown system   -----------------------------------------------------
 
