@@ -11,7 +11,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import threading, subprocess, os, shlex, re, traceback
+import threading, subprocess, signal, os, shlex, re, traceback
 from threading import Thread
 import Queue, collections
 
@@ -45,7 +45,7 @@ class Mpg123(Base):
   def is_active(self):
     """ return active (playing) state """
 
-    return not self._process is None and not self._process.poll() is None
+    return self._process is not None and self._process.poll() is None
 
   # --- start to play music   ------------------------------------------------
 
