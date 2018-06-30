@@ -95,6 +95,13 @@ class Display(Thread,Base):
     title = self._content_provider.get_title()
     self._update_display(self._format_title(*title),[],True)
 
+  # --- clear display   -----------------------------------------------------
+
+  def clear(self):
+    """ clear the display """
+    if self.have_disp:
+      self._lcd.lcd_clear()
+
   # --- clear current content   ---------------------------------------------
 
   def clear_content(self):
@@ -148,7 +155,7 @@ class Display(Thread,Base):
         self.debug("update_display: line: %s" % line)
         self._content_deque.append(line)
     except Queue.Empty:
-      pass
+      self._content_deque.append("")
     except:
       if self._debug:
         print traceback.format_exc()
@@ -210,7 +217,8 @@ class Display(Thread,Base):
       if self._content_provider:
         title   = self._content_provider.get_title()
         content = self._content_provider.get_content()
-        self._split_content(content)                   # split and push
+        if content:
+          self._split_content(content)                 # split and push
       else:
         title = ("","")
       self._next_content()                             # pop lines to deque
