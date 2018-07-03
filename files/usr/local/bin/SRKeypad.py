@@ -40,17 +40,20 @@ class Keypad(Thread,Base):
     # section [GLOBAL]
     self._debug  = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
 
-    # section [KEYS]
-    key_map = {}
-    for (key,func_name) in self._app.parser.items("KEYS"):
-      key_map[key] = func_name
-    self._keymaps.append(key_map)
-
-    # section [PLAYER]
-    key_map = {}
-    for (key,func_name) in self._app.parser.items("PLAYER"):
-      key_map[key] = func_name
-    self._keymaps.append(key_map)
+    # section [KEYPAD]
+    key_map_radio  = {}
+    key_map_player = {}
+    for (key,mappings) in self._app.parser.items("KEYPAD"):
+      if ',' in mappings:
+        func_radio,func_player = mappings.split(",")
+        if len(func_radio):
+          key_map_radio[key]  = func_radio
+        if len(func_player):
+          key_map_player[key] = func_player
+      else:
+        key_map_radio[key] = mappings
+    self._keymaps.append(key_map_radio)
+    self._keymaps.append(key_map_player)
 
     # the default key-map is the radio-keymap
     self._map_index = Keypad.KEYPAD_RADIO
