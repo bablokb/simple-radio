@@ -168,7 +168,7 @@ class Player(Base):
   def func_toggle_play(self,_):
     """ toggle play/pause """
 
-    if self._play_start_dt == None:
+    if not self._app.mpg123.is_active():
       if not self._rec_index is None:
         self.debug("starting playback")
         self._play_pause = False
@@ -199,7 +199,9 @@ class Player(Base):
   def func_prev_recording(self,_):
     """ switch to previous recording """
 
-    if self._play_start_dt == None:
+    if self._app.mpg123.is_active():
+      self.debug("playback in progress, ignoring command")
+    else:
       self.debug("switch to previous recording")
       if self._rec_index is None:
         return
@@ -207,22 +209,19 @@ class Player(Base):
         self._rec_index = (self._rec_index-1) % len(self._recordings)
         self.debug("current recording: %s" % self._recordings[self._rec_index])
         self._set_recinfo()
-    else:
-      self.debug("playback in progress, ignoring command")
 
   # --- next recording   -------------------------------------------------------
 
   def func_next_recording(self,_):
     """ switch to next recording """
 
-    if self._play_start_dt == None:
+    if self._app.mpg123.is_active():
+      self.debug("playback in progress, ignoring command")
       self.debug("switch to next recording")
+    else:
       if self._rec_index is None:
         return
       else:
         self._rec_index = (self._rec_index+1) % len(self._recordings)
         self.debug("current recording: %s" % self._recordings[self._rec_index])
         self._set_recinfo()
-    else:
-      self.debug("playback in progress, ignoring command")
-
