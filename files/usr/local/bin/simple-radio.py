@@ -19,13 +19,14 @@ from   argparse import ArgumentParser
 import threading, signal
 import ConfigParser
 
-from SRBase    import Base
-from SRKeypad  import Keypad
-from SRDisplay import Display
-from SRRadio   import Radio
-from SRPlayer  import Player
-from SRMpg123  import Mpg123
-from SRAmp     import Amp
+from SRBase     import Base
+from SRKeypad   import Keypad
+from SRDisplay  import Display
+from SRRadio    import Radio
+from SRRecorder import Recorder
+from SRPlayer   import Player
+from SRMpg123   import Mpg123
+from SRAmp      import Amp
 
 # --- helper class for options   --------------------------------------------
 
@@ -98,7 +99,8 @@ class App(Base):
     self.radio = Radio(self)
     self.radio.read_config()
 
-    self.player =  Player(self)
+    self.player   =  Player(self)
+    self.recorder =  Recorder(self)
 
     self.display = Display(self)
     self.display.read_config()
@@ -251,15 +253,7 @@ class App(Base):
   def do_record(self):
     """ record radio """
 
-    self._rec_thread = threading.Thread(target=self.radio.record_stream,
-                                     args=(int(options.channel),))
-    self.radio.rec_stop = threading.Event()
-    self.radio._rec_thread.start()
-
-    if not self.radio.rec_stop.wait(60*self._duration):
-      self.radio.rec_stop.set()
-    if self.radio._rec_thread.is_alive():
-      self.radio._rec_thread.join()
+    self.recorder.record(self.radio.get_channel(int(options.channel)-1))
 
 # --- main program   ----------------------------------------------------------
 
