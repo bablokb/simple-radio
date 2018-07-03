@@ -30,6 +30,7 @@ class Keypad(Thread,Base):
     super(Keypad,self).__init__(name="Keypad")
     self._app     = app
     self._keymaps = []
+    self.read_config()
 
   # --- read configuration   --------------------------------------------------
 

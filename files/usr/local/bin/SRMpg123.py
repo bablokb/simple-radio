@@ -28,6 +28,7 @@ class Mpg123(Base):
     self._icy_event = None
 
     self.icy_data   = None
+    self.read_config()
 
   # --- read configuration   --------------------------------------------------
 

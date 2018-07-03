@@ -93,24 +93,18 @@ class App(Base):
     self._functions  = {}                   # maps user-functions to methods
     self.register_funcs(self.get_funcs())
 
-    self.keypad = Keypad(self)
-    self.keypad.read_config()
+    # create all objects
+    self.keypad   = Keypad(self)
+    self.radio    = Radio(self)
+    self.player   = Player(self)
+    self.recorder = Recorder(self)
+    self.mpg123   = Mpg123(self)
+    self.amp      = Amp(self)
+    self.display  = Display(self)
 
-    self.radio = Radio(self)
-    self.radio.read_config()
-
-    self.player   =  Player(self)
-    self.recorder =  Recorder(self)
-
-    self.display = Display(self)
-    self.display.read_config()
     self.display.set_content_provider(self.radio)
     self.display.init()
 
-    self.mpg123 = Mpg123(self)
-    self.mpg123.read_config()
-
-    self.amp = Amp(self)
 
   # --- read configuration   --------------------------------------------------
 

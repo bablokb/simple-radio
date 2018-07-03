@@ -34,6 +34,7 @@ class Display(Thread,Base):
     self._app              = app
     self._content_queue    = Queue.Queue()         # for split content data
     self._content_provider = None                  # content provider
+    self.read_config()
 
   # --- read configuration   --------------------------------------------------
 

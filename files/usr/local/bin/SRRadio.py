@@ -32,6 +32,7 @@ class Radio(Base):
     self._name         = ''                 # and no channel-name
     self.stop_event    = app.stop_event
     self._title_toggle = True               # toggle title during recording
+    self.read_config()
 
   # --- read configuration   --------------------------------------------------
 
