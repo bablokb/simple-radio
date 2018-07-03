@@ -122,6 +122,17 @@ class Radio(Base):
           break
     return lines
 
+  # --- print channel-list   --------------------------------------------------
+
+  def print_channels(self):
+    """ print channels """
+
+    PRINT_CHANNEL_FMT="{0:2d} {1:14.14s}: {2:s}"
+    i = 1
+    for channel in self._channels:
+      print(PRINT_CHANNEL_FMT.format(i,*channel))
+      i += 1
+
   # --- switch channel   ------------------------------------------------------
 
   def func_switch_channel(self,nr):

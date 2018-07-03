@@ -102,10 +102,6 @@ class App(Base):
     self.amp      = Amp(self)
     self.display  = Display(self)
 
-    self.display.set_content_provider(self.radio)
-    self.display.init()
-
-
   # --- read configuration   --------------------------------------------------
 
   def read_config(self):
@@ -221,6 +217,8 @@ class App(Base):
     """ play radio """
 
     # start display-controller thread
+    self.display.set_content_provider(self.radio)
+    self.display.init()
     self._threads.append(self.display)
     self.display.start()
 
@@ -230,17 +228,6 @@ class App(Base):
     # start poll keys thread
     self._threads.append(self.keypad)
     self.keypad.start()
-
-  # --- list channels   -------------------------------------------------------
-
-  def do_list(self):
-    """ list channels """
-
-    LIST_CHANNEL_FMT="{0:2d} {1:14.14s}: {2:s}"
-    i = 1
-    for channel in self.radio._channels:
-      print(LIST_CHANNEL_FMT.format(i,*channel))
-      i += 1
 
   # --- record radio   --------------------------------------------------------
 
@@ -271,7 +258,7 @@ if __name__ == '__main__':
   signal.signal(signal.SIGINT,  app.signal_handler)
 
   if options.do_list:
-    app.do_list()
+    app.radio.print_channels()
   elif options.do_record:
     app.do_record()
   else:
