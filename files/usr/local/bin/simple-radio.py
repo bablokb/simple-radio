@@ -81,11 +81,13 @@ def check_options(options):
 class App(Base):
   """ main application class """
 
-  def __init__(self,parser,options):
+  def __init__(self,options):
     """ initialization """
 
     self.options    = options
-    self.parser     = parser
+    self.parser     = ConfigParser.RawConfigParser()
+    self.parser.read('/etc/simple-radio.conf')
+
     self.read_config()
 
     self._threads    = []                   # thread-store
@@ -229,13 +231,6 @@ class App(Base):
     self._threads.append(self.keypad)
     self.keypad.start()
 
-  # --- record radio   --------------------------------------------------------
-
-  def do_record(self):
-    """ record radio """
-
-    self.recorder.record(self.radio.get_channel(int(options.channel)-1))
-
 # --- main program   ----------------------------------------------------------
 
 if __name__ == '__main__':
@@ -248,10 +243,7 @@ if __name__ == '__main__':
   options        = opt_parser.parse_args(namespace=Options)
   check_options(options)
 
-  parser = ConfigParser.RawConfigParser()
-  parser.read('/etc/simple-radio.conf')
-
-  app = App(parser,options)
+  app = App(options)
 
   # setup signal-handler
   signal.signal(signal.SIGTERM, app.signal_handler)
@@ -260,7 +252,7 @@ if __name__ == '__main__':
   if options.do_list:
     app.radio.print_channels()
   elif options.do_record:
-    app.do_record()
+    app.recorder.record(self.radio.get_channel(int(options.channel)-1))
   else:
     app.do_play()
     signal.pause()
