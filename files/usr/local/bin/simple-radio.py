@@ -270,9 +270,6 @@ if __name__ == '__main__':
   signal.signal(signal.SIGTERM, app.signal_handler)
   signal.signal(signal.SIGINT,  app.signal_handler)
 
-  # read channel-list
-  app.radio.read_channels()
-
   if options.do_list:
     app.do_list()
   elif options.do_record:
