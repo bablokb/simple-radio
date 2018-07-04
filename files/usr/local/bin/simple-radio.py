@@ -27,6 +27,7 @@ from SRRecorder import Recorder
 from SRPlayer   import Player
 from SRMpg123   import Mpg123
 from SRAmp      import Amp
+from SRLirc     import Lirc
 
 # --- helper class for options   --------------------------------------------
 
@@ -97,6 +98,7 @@ class App(Base):
 
     # create all objects
     self.keypad   = Keypad(self)
+    self.lirc     = Lirc(self)
     self.radio    = Radio(self)
     self.player   = Player(self)
     self.recorder = Recorder(self)
@@ -227,9 +229,11 @@ class App(Base):
     if options.channel:
       self.radio.switch_channel(options.channel)
 
-    # start poll keys thread
+    # start control-threads
     self._threads.append(self.keypad)
     self.keypad.start()
+    self._threads.append(self.lirc)
+    self.lirc.start()
 
 # --- main program   ----------------------------------------------------------
 
