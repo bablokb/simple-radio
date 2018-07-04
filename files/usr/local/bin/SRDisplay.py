@@ -43,12 +43,12 @@ class Display(Thread,Base):
 
     # section [GLOBAL]
     self._debug  = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
-    self._i2c    = int(self.get_value(self._app.parser,"GLOBAL","i2c",0))
 
     # section [DISPLAY]
     have_disp         = (self.get_value(self._app.parser,
                                         "DISPLAY", "display","0") == "1")
     self.have_disp    = have_lcd and have_disp
+    self._i2c         = int(self.get_value(self._app.parser,"DISPLAY","i2c",0))
     self._rows        = int(self.get_value(self._app.parser,"DISPLAY", "rows",2))
     self._cols        = int(self.get_value(self._app.parser,"DISPLAY", "cols",16))
     self._scroll_time = int(self.get_value(self._app.parser,"DISPLAY", "scroll",3))
