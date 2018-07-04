@@ -39,6 +39,9 @@ class Keypad(Thread,Base):
 
     # section [GLOBAL]
     self._debug  = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
+    self._active = self.get_value(self._app.parser,"GLOBAL", "keypad","1") == "1"
+    if not self._active:
+      return
 
     # section [KEYPAD]
     key_map_radio  = {}
@@ -69,7 +72,10 @@ class Keypad(Thread,Base):
   def run(self):
     """ poll keys from pipe """
 
-    self.debug("starting poll_keys")
+    self.debug("starting Keypad.run()")
+    if not self._active:
+      self.debug("keypad not active: terminating Keypad.run()")
+      return
 
     # wait for pipe
     pipe_wait = 0.5
@@ -110,7 +116,7 @@ class Keypad(Thread,Base):
             print traceback.format_exc()
 
     # cleanup work after termination
-    self.debug("terminating poll_keys on stop request")
+    self.debug("terminating Keypad.run() on stop request")
     poll_obj.unregister(pipe)
     pipe.close()               # also closes the fd
 
