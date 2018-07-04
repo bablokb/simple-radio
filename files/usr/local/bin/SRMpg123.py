@@ -38,7 +38,9 @@ class Mpg123(Base):
     # section [GLOBAL]
     self._debug       = self.get_value(self._app.parser,
                                        "GLOBAL", "debug","0") == "1"
-    self._mpg123_opts = self.get_value(self._app.parser,"GLOBAL",
+
+    # section [MPG123]
+    self._mpg123_opts = self.get_value(self._app.parser,"MPG123",
                                        "mpg123_opts","-b 1024")
 
   # --- active-state (return true if playing)   --------------------------------

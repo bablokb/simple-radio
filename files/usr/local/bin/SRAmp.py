@@ -33,9 +33,11 @@ class Amp(Base):
     """ read configuration from config-file """
 
     # section [GLOBAL]
-    self._debug       = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
-    self._mixer       = self.get_value(self._app.parser,"GLOBAL","mixer","PCM")
-    self._mixer_opts  = self.get_value(self._app.parser,"GLOBAL","mixer_opts","")
+    self._debug = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
+
+    # section [AMP]
+    self._mixer       = self.get_value(self._app.parser,"AMP","mixer","PCM")
+    self._mixer_opts  = self.get_value(self._app.parser,"AMP","mixer_opts","")
 
   # --- query current volume   ------------------------------------------------
 
