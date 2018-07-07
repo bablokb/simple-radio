@@ -208,9 +208,7 @@ class App(Base):
     self.debug("received signal, stopping program ...")
     self.mpg123.stop()
     self.stop_event.set()
-    if self.radio.rec_stop:
-      self.radio.rec_stop.set()
-      self.radio._rec_thread.join()
+    self.recorder.stop_recording()
     map(threading.Thread.join,self._threads)
     self.debug("... done stopping program")
     sys.exit(0)
