@@ -168,9 +168,9 @@ class Radio(Base):
     # switch_channel expects a channel-number, while self._channel is
     # a channel index
     if self._channel == -1:
-      self.switch_channel(1)
+      self.func_switch_channel(1)
     else:
-      self.switch_channel(1+((self._channel+1) % len(self._channels)))
+      self.func_switch_channel(1+((self._channel+1) % len(self._channels)))
 
   # --- switch to previous channel   ------------------------------------------
 
@@ -181,9 +181,9 @@ class Radio(Base):
     # switch_channel expects a channel-number, while self._channel is
     # a channel index
     if self._channel == -1:
-      self.switch_channel(len(self._channels))
+      self.func_switch_channel(len(self._channels))
     else:
-      self.switch_channel(1+((self._channel-1) % len(self._channels)))
+      self.func_switch_channel(1+((self._channel-1) % len(self._channels)))
 
   # --- turn radio off   ------------------------------------------------------
 

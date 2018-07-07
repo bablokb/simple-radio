@@ -227,7 +227,7 @@ class App(Base):
     self.display.start()
 
     if options.channel:
-      self.radio.switch_channel(options.channel)
+      self.radio.func_switch_channel(options.channel)
 
     # start control-threads
     self._threads.append(self.keypad)
