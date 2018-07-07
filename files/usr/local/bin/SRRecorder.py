@@ -11,7 +11,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import threading, os, datetime
+import threading, os, datetime, urllib2
 from threading import Thread
 
 from SRBase import Base

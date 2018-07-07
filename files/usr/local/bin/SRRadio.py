@@ -14,7 +14,6 @@
 import threading, os, time, datetime, shlex
 import Queue, collections
 import threading, signal, subprocess, traceback
-import urllib2
 
 from SRBase import Base
 
