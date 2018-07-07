@@ -72,6 +72,7 @@ class Player(Base):
       return ("reading","")
 
     if not self._app.mpg123.is_active():
+      self.func_stop_play("_")
       # nothing is playing, show name of current recording
       if self._rec_index is None:
         return ("no recordings","")
@@ -189,10 +190,11 @@ class Player(Base):
   def func_stop_play(self,_):
     """ stop playing """
 
-    self.debug("stopping playback")
-    self._app.mpg123.stop()
-    self._app.display.clear_content()
-    self._play_start_dt = None
+    if self._play_start_dt:
+      self.debug("stopping playback")
+      self._app.mpg123.stop()
+      self._app.display.clear_content()
+      self._play_start_dt = None
 
   # --- previous recording   --------------------------------------------------
 
