@@ -4,14 +4,15 @@ Simple Radio
 This project implements a simple internet-radio using
 
   - a Raspberry Pi (or a similar SBC)
-  - a TTP229-based keypad
+  - a TTP229-based keypad and/or
+  - an infrared remote-control
   - a LCD-display (typically with 2-4 rows and 16-20 columns)
 
 ![](images/simple-radio.jpg "Pi-Zero with TTP229-keypad and 1602-LCD")
 
 Basic features of the implementation:
 
-  - select predefined radio-stations using the keypad
+  - select predefined radio-stations using the keypad/remote
   - display date and time and channel name on the display
   - display ICY-META data on the display
   - record a radio-channel (either unattended or on request)
@@ -29,10 +30,15 @@ For the LCD you will find many tutorials on the net, for the keypad
 you should head over to my
 [pi-ttp229-keypad project](https://github.com/bablokb/pi-ttp229-keypad "keypad-project").
 
+As an alternative for the keypad you can use a remote-control and
+configure LIRC for it. There are also a lot of tutorials available on
+how to configure LIRC for Raspbian.
+
 Note: using only the recorder-part of the project does not require
 the display and the keypad - even the configuration of the sound-system
 is not necessary as long as you use a different system for playback. So
 the recorder can be operated on a pure headless system.
+
 
 Installation
 ------------
@@ -46,11 +52,13 @@ Use the following commands to install the software and all prerequisites:
 
     git clone https://github.com/bablokb/simple-radio.git
     cd simple-radio
-    sudo tools/install pi
+    sudo tools/install pi 27
 
 The firt set of commands installs the code for the keypad, the second set
 installs the code of this project. If your standard user is not `pi`,
-you should pass a different name to the install command.
+you should pass a different name to the install command. The install command
+also needs the number of the GPIO-pin of your LIRC installation. Even if
+you do not use a remote, you have to provide this number.
 
 Both installations will ask you to configure the software using the files
 `/etc/ttp229-keypad.conf` and `/etc/simple-radio.conf` respectively.
@@ -59,11 +67,15 @@ Both installations will ask you to configure the software using the files
 Configuration
 -------------
 
-The config-file of this project has a number of sections. The `[GLOBAL]`
-section configures some basic properties. The section `[DISPLAY]` lists
-the attributes (rows and columns) of your display. Not every display has
-all the characters at the correct code-points, you can use to translate
-characters to the correct codepoint with the `trans`-variable:
+The config-file of this project (`/etc/simple-radio.conf`) has a number of
+sections. The meaning of the sections and variables should in general be
+clear.
+
+The `[GLOBAL]` section configures some basic properties. The section
+`[DISPLAY]` lists the attributes (rows and columns) of your
+display. Not every display has all the characters at the correct
+code-points, you can use to translate characters to the correct
+codepoint with the `trans`-variable:
 
     trans:  äöüßÄÖÜíáéè, e1,ef,f5,e2,e1,ef,f5,69,61,65,65
 
@@ -82,14 +94,21 @@ and the default duration. Both values can be overriden on the commandline.
 The default duration prevents that your SD-card is filled with a very
 long recording in case you forget to stop the recording.
 
-The `[KEYS]`-section defines the mapping of the 16 keys to predefined
-commands. The example maps the first 12 keys to `switch_channel`, i.e.
+The `[KEYPAD]`-section defines the mapping of the 16 keys to predefined
+commands. For every key, you can map the function in radio-mode and in
+player-mode.
+
+The example maps the first 8 keys to `switch_channel` in radio-mode, i.e.
 key 5 will switch to channel number 5 (see below).
 
-The `[PLAYER]`-section holds the key-mapping in player-mode.
+In player-mode, the keys trigger other functions, e.g. start/stop playing
+or switching to the next recording.
 
 The configuration file has a list of all available commands you can match
-to the keys.
+to the keys. Also see the section "Functions" below.
+
+Finally, the `[LIRC]`-section maps LIRC-keynames to functions. Since remotes
+typically have more keys, every key is only mapped to a single function.
 
 
 Channel-file
@@ -119,3 +138,33 @@ The install-script copies a sample channel file from
 to the install-command. The sample channels-file contains a number
 of public radio channels in Germany. Note that the URLs are not
 stable and tend to change over time.
+
+
+Functions
+---------
+
+The program implements a number of functions which can be mapped to keys:
+
+| Function       | Description                                         |
+| ---------------|-----------------------------------------------------|
+| switch_channel | switch to channel (channel-number = key-number)     |
+| prev_channel   | switch to previous channel                          |
+| next_channel   | switch to next channel                              |
+| toggle_record  | toggle recording, i.e. start or stop recording      |
+| radio_off      | turn the radio off (a recording will continue)      |
+| ---------------|-----------------------------------------------------|
+| volume_down    | decrease volume                                     |
+| toggle_mute    | toggle mute (not available with all sound-hardware) |
+| volume_up      | increase volume                                     |
+| ---------------|-----------------------------------------------------|
+| start_playmode | switch to playback-mode                             |
+| prev_recording | switch to the previous recording                    |
+| toggle_play    | start or pause the currently selected recording     |
+| next_recording | switch to the next recording                        |
+| stop_play      | stop the current playback                           |
+| exit_playmode  | switch back to radio-mode                           |
+| ---------------|-----------------------------------------------------|
+| reboot         | reboot the system                                   |
+| restart        | restart the application                             |
+| shutdown       | shutdown the system                                 |
+| ---------------|-----------------------------------------------------|
