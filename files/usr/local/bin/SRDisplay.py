@@ -217,9 +217,11 @@ class Display(Thread,Base):
     while True:
       if self._content_provider:
         title   = self._content_provider.get_title()
-        content = self._content_provider.get_content()
-        if content:
-          self._split_content(content)                 # split and push
+        if self._content_queue.qsize() < self._rows-1:
+          # only ask for new content if we don't have enough to display
+          content = self._content_provider.get_content()
+          if content:
+            self._split_content(content)                 # split and push
       else:
         title = ("","")
       self._next_content()                             # pop lines to deque
