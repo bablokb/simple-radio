@@ -116,14 +116,14 @@ class Recorder(Thread,Base):
 
     duration = datetime.datetime.now() - self._rec_start_dt
     duration = int(duration.total_seconds())
-    m, s = divmod(duration,60)
-    h, m = divmod(m,60)
 
+    m, s = divmod(duration,60)
     # check if we have to stop recording
     # actually, wie should do this elsewhere, but here we have all
     # the necessary information
     if m >= self._duration and self.rec_stop:
       self.rec_stop.set()
+    h, m = divmod(m,60)
 
     # return either mm:ss or hh:mm
     if h > 0:
