@@ -193,7 +193,6 @@ class Player(Base):
     if self._play_start_dt:
       self.debug("stopping playback")
       self._app.mpg123.stop()
-      self._app.display.clear_content()
       self._play_start_dt = None
 
   # --- previous recording   --------------------------------------------------
