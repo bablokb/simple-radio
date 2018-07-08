@@ -87,6 +87,7 @@ class App(Base):
 
     self.options    = options
     self.parser     = ConfigParser.RawConfigParser()
+    self.parser.optionxform = str
     self.parser.read('/etc/simple-radio.conf')
 
     self.read_config()
