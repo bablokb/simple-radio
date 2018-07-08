@@ -12,19 +12,26 @@
 # --- check user parameter   -----------------------------------------------
 
 if [ -z "$1" ]; then
-  echo -e "usage: $0 username" >&2
+  echo -e "usage: $0 username LIRC-pin" >&2
   exit 3
 else
   USERNAME="$1"
 fi
 
+if [ -z "$2" ]; then
+  echo -e "usage: $0 username LIRC-pin" >&2
+  exit 3
+else
+  LIRC_PIN="$2"
+fi
+
 # --- defaults used during installation   ----------------------------------
 
+PACKAGES="python-smbus mpg123 mp3info lirc"
 PROJECT="simple-radio"
 
 # --- basic packages   ------------------------------------------------------
 
-PACKAGES="python-smbus mpg123 mp3info"
 if [ -n "$PACKAGES" ]; then
   apt-get update
   apt-get -y install $PACKAGES
@@ -62,6 +69,12 @@ restart=0
 if ! grep -q "^dtparam=i2c_arm=on" /boot/config.txt ; then
   echo -e "[INFO] configuring i2c in /boot/config.txt" 2>&1
   echo "dtparam=i2c_arm=on" >> /boot/config.txt
+  restart=1
+fi
+
+if ! grep -q "^dtoverlay=lirc-rpi" /boot/config.txt ; then
+  echo -e "[INFO] configuring LIRC in /boot/config.txt" 2>&1
+  echo "dtoverlay=lirc-rpi,gpio_in_pin=$LIRC_PIN" >> /boot/config.txt
   restart=1
 fi
 
