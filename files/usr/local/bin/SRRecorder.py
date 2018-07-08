@@ -4,6 +4,9 @@
 #
 # The class Recorder encapsulates the recording functions
 #
+# Part of this code is inspired by https://github.com/radiorec
+# Copyright (C) 2013  Martin Brodbeck <martin@brodbeck-online.de>
+#
 # Author: Bernhard Bablok
 # License: GPL3
 #
