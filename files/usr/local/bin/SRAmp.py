@@ -36,8 +36,9 @@ class Amp(Base):
     self._debug = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
 
     # section [AMP]
-    self._mixer       = self.get_value(self._app.parser,"AMP","mixer","PCM")
-    self._mixer_opts  = self.get_value(self._app.parser,"AMP","mixer_opts","")
+    self._mixer      = self.get_value(self._app.parser,"AMP","mixer","PCM")
+    self._mixer_opts = self.get_value(self._app.parser,"AMP","mixer_opts","")
+    self._vol_delta  = int(self.get_value(self._app.parser,"AMP","vol_delta","5"))
 
   # --- query current volume   ------------------------------------------------
 
@@ -80,7 +81,7 @@ class Amp(Base):
 
     self.debug("turn volume up")
     current_volume = self._get_volume()
-    self._set_volume(min(current_volume+1,100))
+    self._set_volume(min(current_volume+self._vol_delta,100))
 
   # --- turn volume down   ----------------------------------------------------
 
@@ -89,7 +90,7 @@ class Amp(Base):
 
     self.debug("turn volume down")
     current_volume = self._get_volume()
-    self._set_volume(max(current_volume-1,0))
+    self._set_volume(max(current_volume-self._vol_delta,0))
 
   # --- toggle mute   ---------------------------------------------------------
 
