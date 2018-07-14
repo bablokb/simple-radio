@@ -46,3 +46,15 @@ class Base(object):
 
     return {key[5:]:getattr(self,key)
             for key in dir(self) if key.startswith("func_")}
+
+  # --- return persistent state of this class   -------------------------------
+
+  def get_state(self):
+    """ return persistent state (implemented by subclasses) """
+    return {}
+
+  # --- set state state of this class   ---------------------------------------
+
+  def set_state(self,state_map):
+    """ set state (implemented by subclasses) """
+    pass
