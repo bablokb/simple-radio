@@ -14,7 +14,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import locale, os, sys
+import locale, os, sys, simplejson
 from   argparse import ArgumentParser
 import threading, signal
 import ConfigParser
@@ -91,6 +91,7 @@ class App(Base):
     self.parser.read('/etc/simple-radio.conf')
 
     self.read_config()
+    self._store = os.path.join(os.path.expanduser("~"),".simple-radio.json")
 
     self._threads    = []                   # thread-store
     self.stop_event  = threading.Event()
@@ -106,6 +107,9 @@ class App(Base):
     self.mpg123   = Mpg123(self)
     self.amp      = Amp(self)
     self.display  = Display(self)
+    self._objects = [self,self.keypad,self.lirc,self.radio,self.player,
+                     self.recorder,self.mpg123,self.amp,self.display]
+    self._load_state()
 
   # --- read configuration   --------------------------------------------------
 
@@ -201,6 +205,38 @@ class App(Base):
     else:
       self.debug("no restart in debug-mode")
 
+  # --- query state of objects and save   -------------------------------------
+
+  def _save_state(self):
+    """ query and save state of objects """
+
+    state = {}
+    for obj in self._objects:
+      state[obj.__module__] = obj.get_persistent_state()
+
+    f = open(self._store,"w")
+    self.debug("Saving settings to %s" % self._store)
+    simplejson.dump(state,f,indent=2,sort_keys=True)
+    f.close()
+
+  # --- load state of objects   -----------------------------------------------
+
+  def _load_state(self):
+    """ load state of objects """
+
+    try:
+      self.debug("Loading settings from %s" % self._store)
+      f = open(self._store,"r")
+      state = simplejson.load(f)
+      for obj in self._objects:
+        if state.has_key(obj.__module__):
+          obj.set_persistent_state(state[obj.__module__])
+      f.close()
+    except:
+      self.debug("Loading settings failed")
+      if self._debug:
+        print traceback.format_exc()
+
   # --- setup signal handler   ------------------------------------------------
 
   def signal_handler(self,_signo, _stack_frame):
@@ -211,6 +247,7 @@ class App(Base):
     self.stop_event.set()
     self.recorder.stop_recording()
     map(threading.Thread.join,self._threads)
+    self._save_state()
     self.debug("... done stopping program")
     sys.exit(0)
 
