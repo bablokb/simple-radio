@@ -28,6 +28,7 @@ class Radio(Base):
 
     self._active       = True
     self._channel      = -1                 # and no channel
+    self._last_channel = -1                 # and no channel
     self._name         = ''                 # and no channel-name
     self.stop_event    = app.stop_event
     self._title_toggle = True               # toggle title during recording
@@ -45,6 +46,23 @@ class Radio(Base):
                                        "simple-radio.channels")
     self._channel_file  = self.get_value(self._app.parser,"GLOBAL","channel_file",
                                          default_path)
+
+  # --- return persistent state of this class   -------------------------------
+
+  def get_persistent_state(self):
+    """ return persistent state (overrides SRBase.get_pesistent_state()) """
+    return {
+      'channel': self._last_channel
+      }
+
+  # --- restore persistent state of this class   ------------------------------
+
+  def set_persistent_state(self,state_map):
+    """ restore persistent state (overrides SRBase.set_pesistent_state()) """
+
+    self.debug("Radio: restoring persistent state")
+    if state_map.has_key('channel'):
+      self._last_channel = state_map['channel']
 
   # --- read channels   -------------------------------------------------------
 
@@ -150,6 +168,7 @@ class Radio(Base):
     self._app.mpg123.stop()
 
     self._channel = min(nr-1,len(self._channels)-1)
+    self._last_channel = self._channel
     channel_name = self._channels[self._channel][0]
     channel_url  = self._channels[self._channel][1]
 
