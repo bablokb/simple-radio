@@ -49,12 +49,12 @@ class Base(object):
 
   # --- return persistent state of this class   -------------------------------
 
-  def get_state(self):
+  def get_persistent_state(self):
     """ return persistent state (implemented by subclasses) """
     return {}
 
   # --- set state state of this class   ---------------------------------------
 
-  def set_state(self,state_map):
+  def set_persistent_state(self,state_map):
     """ set state (implemented by subclasses) """
     pass
