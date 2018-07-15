@@ -27,9 +27,9 @@ class Radio(Base):
     app.register_funcs(self.get_funcs())
 
     self._active       = True
-    self._channel      = -1                 # and no channel
-    self._last_channel = -1                 # and no channel
-    self._name         = ''                 # and no channel-name
+    self._channel      = -1                 # current channel index
+    self._last_channel = -1                 # last active channel index
+    self._name         = ''
     self.stop_event    = app.stop_event
     self._title_toggle = True               # toggle title during recording
     self.read_config()
@@ -52,7 +52,7 @@ class Radio(Base):
   def get_persistent_state(self):
     """ return persistent state (overrides SRBase.get_pesistent_state()) """
     return {
-      'channel': self._last_channel
+      'channel_index': self._last_channel
       }
 
   # --- restore persistent state of this class   ------------------------------
@@ -61,8 +61,8 @@ class Radio(Base):
     """ restore persistent state (overrides SRBase.set_pesistent_state()) """
 
     self.debug("Radio: restoring persistent state")
-    if state_map.has_key('channel'):
-      self._last_channel = state_map['channel']
+    if state_map.has_key('channel_index'):
+      self._last_channel = state_map['channel_index']
 
   # --- read channels   -------------------------------------------------------
 
@@ -212,6 +212,18 @@ class Radio(Base):
     self._name    = None
     self._channel = -1
     self._app.mpg123.stop()
+
+  # --- turn radio on   -------------------------------------------------------
+
+  def func_radio_on(self,_):
+    """ turn radio on """
+
+    if self._channel == -1:
+      self.debug("turning radio on")
+      # if last_channel is -1, we just switch to the first channel
+      self.func_switch_channel(max(self._last_channel,0)+1)
+    else:
+      self.debug("ignoring command, radio already on")
 
   # --- toggle recording   ----------------------------------------------------
 
