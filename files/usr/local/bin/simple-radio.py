@@ -150,7 +150,7 @@ class App(Base):
   # --- exit player mode   ----------------------------------------------------
 
   def func_exit_playmode(self,_):
-    """ start player mode """
+    """ stop player mode, start radio mode """
 
     self.debug("stopping player mode")
     self.player.set_state(False)
