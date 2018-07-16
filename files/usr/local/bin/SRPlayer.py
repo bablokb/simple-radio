@@ -240,7 +240,7 @@ class Player(Base):
         self.debug("current recording: %s" % self._recordings[self._rec_index])
         self._set_recinfo()
 
-  # --- next recording   -------------------------------------------------------
+  # --- next recording   ------------------------------------------------------
 
   def func_next_recording(self,_):
     """ switch to next recording """
@@ -255,3 +255,18 @@ class Player(Base):
         self._rec_index = (self._rec_index+1) % len(self._recordings)
         self.debug("current recording: %s" % self._recordings[self._rec_index])
         self._set_recinfo()
+
+  # --- delete recording   ----------------------------------------------------
+
+  def func_delete_recording(self,_):
+    """ delete current recording """
+
+    if self._rec_index is None:
+      return
+    self.debug("deleting current recording")
+    self.func_stop_play('-')
+    self.debug("deleting %s" % self._recordings[self._rec_index])
+    os.unlink(self._recordings[self._rec_index])
+    del self._recordings[self._rec_index]
+    if not len(self._recordings):
+      self._rec_index = None
