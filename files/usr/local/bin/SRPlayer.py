@@ -170,22 +170,44 @@ class Player(Base):
     """ toggle play/pause """
 
     if not self._app.mpg123.is_active():
-      if not self._rec_index is None:
-        self.debug("starting playback")
-        self._play_pause = False
-        self._play_start_dt = datetime.datetime.now()
-        self._app.mpg123.start(self._recordings[self._rec_index],False)
+      # nothing is playing, so start player
+      self.func_play('_')
     elif not self._play_pause:
-      self._play_pause = True
-      self._app.mpg123.pause()
-      self._play_pause_dt = datetime.datetime.now()
+      # something is playing, so pause now
+      self.func_pause('_')
     else:
+      # resume from pause
+      self.debug("resuming playback")
       self._play_pause = False
       now = datetime.datetime.now()
       self._play_start_dt += (now-self._play_pause_dt)
       self._app.mpg123.resume()
 
-  # --- stop playing ----------------------------------------------------------
+  # --- start playing   -------------------------------------------------------
+
+  def func_play(self,_):
+    """ start playing """
+
+    if not self._app.mpg123.is_active():
+      if not self._rec_index is None:
+        self.debug("starting playback")
+        self._play_pause = False
+        self._play_start_dt = datetime.datetime.now()
+        self._app.mpg123.start(self._recordings[self._rec_index],False)
+
+  # --- pause playing   -------------------------------------------------------
+
+  def func_pause(self,_):
+    """ pause playing """
+
+    if self._app.mpg123.is_active() and  not self._play_pause:
+      # something is playing, so pause now
+      self.debug("pausing playback")
+      self._play_pause = True
+      self._app.mpg123.pause()
+      self._play_pause_dt = datetime.datetime.now()
+
+  # --- stop playing   --------------------------------------------------------
 
   def func_stop_play(self,_):
     """ stop playing """
