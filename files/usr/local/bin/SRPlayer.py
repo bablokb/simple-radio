@@ -270,3 +270,7 @@ class Player(Base):
     del self._recordings[self._rec_index]
     if not len(self._recordings):
       self._rec_index = None
+    else:
+      if self._rec_index > len(self._recordings)-1:
+        self._rec_index -= 1
+      self._set_recinfo()
