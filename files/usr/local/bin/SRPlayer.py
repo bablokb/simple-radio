@@ -194,6 +194,13 @@ class Player(Base):
         self._play_pause = False
         self._play_start_dt = datetime.datetime.now()
         self._app.mpg123.start(self._recordings[self._rec_index],False)
+    elif self._play_pause:
+      # resume from pause
+      self.debug("resuming playback")
+      self._play_pause = False
+      now = datetime.datetime.now()
+      self._play_start_dt += (now-self._play_pause_dt)
+      self._app.mpg123.resume()
 
   # --- pause playing   -------------------------------------------------------
 
