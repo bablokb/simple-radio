@@ -14,7 +14,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import locale, os, sys, simplejson
+import locale, os, sys, simplejson, traceback
 from   argparse import ArgumentParser
 import threading, signal
 import ConfigParser
