@@ -63,6 +63,13 @@ class Player(Base):
       self._rec_index     = None
       self._recordings    = None
 
+  # --- return active-state of the object   -----------------------------------
+
+  def is_active():
+    """ return active-state (overrides SRBase.is_active()) """
+
+    return self._active
+
   # --- get title-line (1st line of display)   -------------------------------
 
   def get_title(self):

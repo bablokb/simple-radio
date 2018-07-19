@@ -95,6 +95,13 @@ class Radio(Base):
       self._name    = None
       self._channel = -1
 
+  # --- return active-state of the object   -----------------------------------
+
+  def is_active():
+    """ return active-state (overrides SRBase.is_active()) """
+
+    return self._active
+
   # --- get title-line (1st line of display)   -------------------------------
 
   def get_title(self):
