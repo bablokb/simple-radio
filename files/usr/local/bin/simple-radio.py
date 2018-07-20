@@ -132,8 +132,12 @@ class App(Base):
     """ execute logical function """
 
     if self._functions.has_key(func_name):
-      self.debug("executing: %s" % func_name)
-      self._functions[func_name](key)
+      func = self._functions[func_name]
+      if func.im_self.is_active():                #p3: func.__self__
+        self.debug("executing: %s" % func_name)
+        func(key)
+      else:
+        self.debug("ignoring: %s (not active)" % func_name)
 
   # --- switch to player mode   -----------------------------------------------
 
