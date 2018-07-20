@@ -97,7 +97,7 @@ class Radio(Base):
 
   # --- return active-state of the object   -----------------------------------
 
-  def is_active():
+  def is_active(self):
     """ return active-state (overrides SRBase.is_active()) """
 
     return self._active

@@ -61,6 +61,6 @@ class Base(object):
 
   # --- return active-state of the object   -----------------------------------
 
-  def is_active():
+  def is_active(self):
     """ return active-state (overriden by subclasses) """
     return True
