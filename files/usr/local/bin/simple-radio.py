@@ -229,6 +229,8 @@ class App(Base):
     """ load state of objects """
 
     try:
+      if not os.path.exists(self._store):
+        return
       self.debug("Loading settings from %s" % self._store)
       f = open(self._store,"r")
       state = simplejson.load(f)
