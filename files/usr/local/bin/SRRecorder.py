@@ -165,5 +165,5 @@ class Recorder(Thread,Base):
     """ record the given channel (blocks) """
 
     self.start_recording(channel)
-    if not self.radio.rec_stop.wait(60*self._duration):
+    if not self.rec_stop.wait(60*self._duration):
       self.stop_recording()
