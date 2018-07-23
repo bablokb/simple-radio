@@ -298,7 +298,7 @@ if __name__ == '__main__':
   if options.do_list:
     app.radio.print_channels()
   elif options.do_record:
-    app.recorder.record(self.radio.get_channel(int(options.channel)-1))
+    app.recorder.record(app.radio.get_channel(int(options.channel)-1))
   else:
     app.do_play()
     signal.pause()
