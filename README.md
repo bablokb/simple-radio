@@ -19,6 +19,18 @@ Basic features of the implementation:
   - playback recordings
 
 
+Table of Contents
+-----------------
+
+  1. [Hardware prerequisites](#hardware "Hardware prerequisites")
+  2. [Installation](#install "Installation")
+  3. [Configuration](#configuration "Configuration")
+  4. [Channel-file](#channel-file "Channel file")
+  5. [Functions](#functions "Functions")
+  6. [Recordings](#recordings "Recordings")
+  7. [CEC-Support](#cec-support "CEC-Support")
+
+
 Hardware prerequisites
 ----------------------
 
