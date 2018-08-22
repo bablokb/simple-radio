@@ -28,6 +28,7 @@ from SRPlayer   import Player
 from SRMpg123   import Mpg123
 from SRAmp      import Amp
 from SRLirc     import Lirc
+from SRCec      import CECController
 
 # --- helper class for options   --------------------------------------------
 
@@ -107,8 +108,9 @@ class App(Base):
     self.mpg123   = Mpg123(self)
     self.amp      = Amp(self)
     self.display  = Display(self)
+    self.cec      = CECController(self)
     self._objects = [self,self.keypad,self.lirc,self.radio,self.player,
-                     self.recorder,self.mpg123,self.amp,self.display]
+                     self.recorder,self.mpg123,self.amp,self.display,self.cec]
     self._load_state()
 
   # --- read configuration   --------------------------------------------------
