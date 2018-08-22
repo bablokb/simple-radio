@@ -4,6 +4,14 @@
 #
 # The class CECController is the interface to the CEC-system
 #
+# Part of this code is copied from the libcec-source taken from
+# libcec/src/pyCecClient/pyCecClient.py
+#
+#libCEC(R) is Copyright (C) 2011-2015 Pulse-Eight Limited.  All rights reserved.
+#libCEC(R) is a original work, containing original code.
+#libCEC(R) is a trademark of Pulse-Eight Limited.
+# License: GPL2 (original libcec-license)
+#
 # Author: Bernhard Bablok
 # License: GPL3
 #
