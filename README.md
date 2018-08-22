@@ -177,6 +177,36 @@ The program implements a number of functions which can be mapped to keys:
 | ---------------|-----------------------------------------------------|
 
 
+Recordings
+----------
+
+Simple-radio supports ad-hoc recordings using the function `toggle_record`,
+which is bound to key 15 in the default settings. During a recording,
+you can switch to a different channel or turn the radio off (you should
+not shut it down though). To prevent full sd-cards, the recording time
+of ad-hoc recordings is limited by the value of the configuration-variable
+`duration` in section `[RECORD]`.
+
+Besides these ad-hoc recordings, simple-radio also supports recordings
+in headless-mode directly from the commandline, e.g.
+
+    simple-radio.py -r 4 120
+
+will start to record channel "4" for 120 minutes. Using at or cron you
+plan one-time or regular recordings, e.g.
+
+    echo /usr/local/bin/simple-radio.py -r 4 120 | at 20:00
+
+will start the recording today at 20:00. Note that "at" is not installed
+by default on Raspbian.
+
+For repeated recordings, you can use an entry within crontab, e.g.
+
+     5 8 * * 7 pi /usr/local/bin/simple-radio.py -r 4 55
+
+will record channel 4 for 55 minutes every Sunday at 08:05.
+
+
 CEC-Support
 -----------
 
