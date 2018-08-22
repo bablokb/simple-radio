@@ -34,6 +34,10 @@ As an alternative for the keypad you can use a remote-control and
 configure LIRC for it. There are also a lot of tutorials available on
 how to configure LIRC for Raspbian.
 
+If you connect your Pi using HDMI to a receiver, you can also use
+CEC (Consumer Electronics Control). This delegates a number of commands
+(volume, mute) directly to the receiver. See the section about CEC below.
+
 Note: using only the recorder-part of the project does not require
 the display and the keypad - even the configuration of the sound-system
 is not necessary as long as you use a different system for playback. So
@@ -62,6 +66,9 @@ you do not use a remote, you have to provide this number.
 
 Both installations will ask you to configure the software using the files
 `/etc/ttp229-keypad.conf` and `/etc/simple-radio.conf` respectively.
+
+If you want to use CEC, follow the additional installation instructions
+below.
 
 
 Configuration
@@ -168,3 +175,43 @@ The program implements a number of functions which can be mapped to keys:
 | restart        | restart the application                             |
 | shutdown       | shutdown the system                                 |
 | ---------------|-----------------------------------------------------|
+
+
+CEC-Support
+-----------
+
+The program uses CEC to delegate a number of functions (currently only
+volume-up, volume-down and mute) to a receiver. Prerequisite is that
+your Pi is attached to a receiver using HDMI and that you install
+CEC-support.
+
+The version of libcec installed by Raspbian (at least up to Stretch)
+is not suitable, since it does not install the Python-wrappers. So
+you must install libcec yourself.
+
+First, you should remove the relevant packages if already installed
+from the repository:
+
+    sudo apt-get -y remove libcec cec-utils
+    sudo apt-get -y autoremove
+
+As a second step, you should edit the script `tools/mk-libcec` if you
+compile on a Pi2 or Pi3. In this case, you should use the line
+`make -j4` instead of just `make` (the third-last line in the script).
+
+Download and compilation takes about a quarter of an hour on a Pi-Zero,
+but this depends of course on the speed of your internet connection.
+
+Once installed, you have to change the variable `cec` in section
+`[GLOBAL]` within the configuration file `/etc/simple-radio.conf`. More
+is not necessary. After a restart volume-changes should be delegated
+to your receiver/TV.
+
+A note on hacking:
+
+CEC-support could be extended to more functions if the remote of your
+receiver or TV has better CEC-integration. In this case, you should
+start with the method `_process_key()` within the file
+`files/usr/local/bin/SRCec.py`. Here you have to map keys to the
+relevant functions of simple-radio. See file `files/usr/local/bin/SRKeypad.py`
+(method `process_key()`) for a sample implementation.
