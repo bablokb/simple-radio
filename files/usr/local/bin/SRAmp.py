@@ -2,7 +2,8 @@
 # -----------------------------------------------------------------------------
 # Simple radio: implementation of class Amp
 #
-# The class Amp implements the interface to the amplifier
+# The class Amp implements the interface to the amplifier. If CEC is available
+# the commands are delegated to the CEC-controller.
 #
 # Author: Bernhard Bablok
 # License: GPL3
@@ -80,8 +81,11 @@ class Amp(Base):
     """ turn volume up """
 
     self.debug("turn volume up")
-    current_volume = self._get_volume()
-    self._set_volume(min(current_volume+self._vol_delta,100))
+    if self._app.cec.have_cec():
+      self._app.cec.volume_up()
+    else:
+      current_volume = self._get_volume()
+      self._set_volume(min(current_volume+self._vol_delta,100))
 
   # --- turn volume down   ----------------------------------------------------
 
@@ -89,8 +93,11 @@ class Amp(Base):
     """ turn volume down """
 
     self.debug("turn volume down")
-    current_volume = self._get_volume()
-    self._set_volume(max(current_volume-self._vol_delta,0))
+    if self._app.cec.have_cec():
+      self._app.cec.volume_down()
+    else:
+      current_volume = self._get_volume()
+      self._set_volume(max(current_volume-self._vol_delta,0))
 
   # --- toggle mute   ---------------------------------------------------------
 
@@ -98,5 +105,8 @@ class Amp(Base):
     """ toggle mute """
 
     self.debug("toggle mute")
-    subprocess.call(["amixer","-q","sset",self._mixer,"toggle"])
+    if self._app.cec.have_cec():
+      self._app.cec.toggle_mute()
+    else:
+      subprocess.call(["amixer","-q","sset",self._mixer,"toggle"])
 
