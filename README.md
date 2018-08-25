@@ -244,10 +244,17 @@ compile on a Pi2 or Pi3. In this case, you should use the line
 Download and compilation takes about a quarter of an hour on a Pi-Zero,
 but this depends of course on the speed of your internet connection.
 
-Once installed, you have to change the variable `cec` in section
-`[GLOBAL]` within the configuration file `/etc/simple-radio.conf`. More
-is not necessary. After a restart volume-changes should be delegated
-to your receiver/TV.
+To test CEC-support, you can run `tools/cec-test.py`. This script
+registers itself as a tuner on the CEC-bus and then runs a sort of
+shell, waiting for the user to enter commands, e.g. `scan`. Have a look
+at the source code to check possbile commands. You should also use the
+remote of your TV or receiver and see if the test-programm successfully
+picks up commands or keys.
+
+To activate CEC for simple-radio, you have to change the variable `cec`
+within section `[GLOBAL]` in the configuration file `/etc/simple-radio.conf`.
+More is not necessary. After a restart volume-changes and muting should be
+delegated to your receiver/TV.
 
 A note on hacking:
 
