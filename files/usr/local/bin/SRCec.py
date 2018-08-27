@@ -73,7 +73,7 @@ class CECController(Base):
           " loaded: " + self._controller.GetLibInfo())
 
     # search for adapters
-    self._com_port = self.get_com_port()
+    self._com_port = self._get_com_port()
 
     if self._com_port == None:
       self._have_cec = False
@@ -82,6 +82,9 @@ class CECController(Base):
     if not self._controller.Open(self._com_port):
       self.debug("could not open cec-adapter")
       self._have_cec = False
+    else:
+      #sems to be necessary at least with my DENON
+      self._controller.GetActiveDevices()
 
   # --- process key presses   ------------------------------------------------
   
@@ -145,7 +148,14 @@ class CECController(Base):
 
     return self._have_cec
 
-  # --- increase volume -------------------------------------------------------
+  # --- set as active source   ------------------------------------------------
+
+  def set_active_source(self):
+    """ set as active source """
+    if self._have_cec:
+      self._controller.SetActiveSource()
+
+  # --- increase volume  ------------------------------------------------------
 
   def volume_up(self):
     """ increase volume (delegate to receiver) """
