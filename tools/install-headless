@@ -1,0 +1,72 @@
+#!/bin/bash
+# --------------------------------------------------------------------------
+# This script installs only the necessary files for a headless setup as
+# a pure recorder.
+#
+# Author: Bernhard Bablok
+# License: GPL3
+#
+# Website: https://github.com/bablokb/simple-radio
+#
+# --------------------------------------------------------------------------
+
+# --- check user parameter   -----------------------------------------------
+
+if [ -z "$1" ]; then
+  echo -e "usage: $0 username" >&2
+  exit 3
+else
+  USERNAME="$1"
+fi
+
+# --- defaults used during installation   ----------------------------------
+
+PACKAGES="python-simplejson"
+PROJECT="simple-radio"
+
+# --- basic packages   ------------------------------------------------------
+
+if [ -n "$PACKAGES" ]; then
+  apt-get update
+  apt-get -y install $PACKAGES
+fi
+
+# --- install specific files   ----------------------------------------------
+
+rand="$RANDOM"
+if [ -f /etc/${PROJECT}.conf ]; then
+  # save current configuration
+  mv /etc/${PROJECT}.conf /etc/${PROJECT}.conf.$rand
+fi
+
+for f in `find $(dirname "$0")/../files/ -type f`; do
+  cp "$f" "${f#*files}"
+  chown root:root "${f#*files}"
+done
+
+mv -f /etc/${PROJECT}.conf.headless /etc/${PROJECT}.conf
+
+chmod 755 /usr/local/bin/${PROJECT}.py
+chmod 644 /etc/${PROJECT}.conf
+rm /usr/local/bin/show_charset.py
+rm /usr/local/bin/i2c_lib.py
+rm /usr/local/bin/lcddriver.py
+rm /etc/systemd/system/${PROJECT}.service
+
+# restore old configuration
+if [ -f /etc/${PROJECT}.conf.$rand ]; then
+  mv -f /etc/${PROJECT}.conf /etc/${PROJECT}.conf.new
+  mv /etc/${PROJECT}.conf.$rand /etc/${PROJECT}.conf
+  echo -e "\nnew version of configuration file: /etc/${PROJECT}.conf.new"
+fi
+
+# --- copy channel file   ---------------------------------------------------
+
+if [ ! -f "/home/$USERNAME/simple-radio.channels" ]; then
+  cp $(dirname "$0")/../examples/simple-radio.channels "/home/$USERNAME/simple-radio.channels"
+  chown "$USERNAME" "/home/$USERNAME/simple-radio.channels"
+fi
+
+# --- final configuration is manual   ---------------------------------------
+
+echo -e "\nPlease edit /etc/${PROJECT}.conf"

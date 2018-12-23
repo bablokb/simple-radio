@@ -1,0 +1,25 @@
+# -----------------------------------------------------------------------------
+# Headless configuration file for /usr/local/bin/simple-radio.py
+#
+# Author: Bernhard Bablok
+# License: GPL3
+#
+# Website: https://github.com/bablokb/simple-radio
+#
+# -----------------------------------------------------------------------------
+
+# --- global configuration   --------------------------------------------------
+
+[GLOBAL]
+debug:  0              ; 0|1
+keypad: 0              ; 0|1
+lirc:   0              ; 0|1
+cec:    0              ; 0|1
+# channel_file: <path> ; default: ~/simple-radio.channels
+
+# --- configuration of recorder   ---------------------------------------------
+
+[RECORD]
+#dir: xxx            ; target directory for recordings, defaults to $HOME
+#duration: 60        ; default duration / maximal duration
+
