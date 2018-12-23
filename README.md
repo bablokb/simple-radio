@@ -82,6 +82,14 @@ Both installations will ask you to configure the software using the files
 If you want to use CEC, follow the additional installation instructions
 below.
 
+Alternatively, for a pure headless installation use:
+
+    git clone https://github.com/bablokb/simple-radio.git
+    cd simple-radio
+    sudo tools/install-headless pi
+
+Again, change the user `pi` to a suitable value on your system.
+
 
 Configuration
 -------------
