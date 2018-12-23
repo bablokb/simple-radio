@@ -100,17 +100,25 @@ class App(Base):
     self.register_funcs(self.get_funcs())
 
     # create all objects
-    self.keypad   = Keypad(self)
-    self.lirc     = Lirc(self)
-    self.radio    = Radio(self)
-    self.player   = Player(self)
-    self.recorder = Recorder(self)
-    self.mpg123   = Mpg123(self)
-    self.amp      = Amp(self)
-    self.display  = Display(self)
-    self.cec      = CECController(self)
-    self._objects = [self,self.keypad,self.lirc,self.radio,self.player,
-                     self.recorder,self.mpg123,self.amp,self.display,self.cec]
+    if options.do_record:
+      self.radio    = Radio(self)
+      self.recorder = Recorder(self)
+      self._objects = [self,self.radio,self.recorder]
+    elif options.do_list:
+      self.radio    = Radio(self)
+      self._objects = [self,self.radio]
+    else:
+      self.keypad   = Keypad(self)
+      self.lirc     = Lirc(self)
+      self.radio    = Radio(self)
+      self.player   = Player(self)
+      self.recorder = Recorder(self)
+      self.mpg123   = Mpg123(self)
+      self.amp      = Amp(self)
+      self.display  = Display(self)
+      self.cec      = CECController(self)
+      self._objects = [self,self.keypad,self.lirc,self.radio,self.player,
+                       self.recorder,self.mpg123,self.amp,self.display,self.cec]
     self._load_state()
 
   # --- read configuration   --------------------------------------------------
@@ -251,7 +259,8 @@ class App(Base):
     """ signal-handler for clean shutdown """
 
     self.debug("received signal, stopping program ...")
-    self.mpg123.stop()
+    if hasattr(self,'mpg123'):
+      self.mpg123.stop()
     self.stop_event.set()
     self.recorder.stop_recording()
     map(threading.Thread.join,self._threads)
