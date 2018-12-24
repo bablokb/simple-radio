@@ -20,15 +20,6 @@ import threading, signal
 import ConfigParser
 
 from SRBase     import Base
-from SRKeypad   import Keypad
-from SRDisplay  import Display
-from SRRadio    import Radio
-from SRRecorder import Recorder
-from SRPlayer   import Player
-from SRMpg123   import Mpg123
-from SRAmp      import Amp
-from SRLirc     import Lirc
-from SRCec      import CECController
 
 # --- helper class for options   --------------------------------------------
 
@@ -101,13 +92,25 @@ class App(Base):
 
     # create all objects
     if options.do_record:
+      from SRRadio    import Radio
+      from SRRecorder import Recorder
       self.radio    = Radio(self)
       self.recorder = Recorder(self)
       self._objects = [self,self.radio,self.recorder]
     elif options.do_list:
+      from SRRadio    import Radio
       self.radio    = Radio(self)
       self._objects = [self,self.radio]
     else:
+      from SRKeypad   import Keypad
+      from SRDisplay  import Display
+      from SRRadio    import Radio
+      from SRRecorder import Recorder
+      from SRPlayer   import Player
+      from SRMpg123   import Mpg123
+      from SRAmp      import Amp
+      from SRLirc     import Lirc
+      from SRCec      import CECController
       self.keypad   = Keypad(self)
       self.lirc     = Lirc(self)
       self.radio    = Radio(self)
