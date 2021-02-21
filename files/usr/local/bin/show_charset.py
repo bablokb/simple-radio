@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # This program prints the available charset to the display
 #

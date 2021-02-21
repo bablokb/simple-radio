@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # Simple radio implementation
 #   - read channels from file
