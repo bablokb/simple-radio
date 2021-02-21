@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -----------------------------------------------------------------------------
 # Simple radio: implementation of class Radio
 #

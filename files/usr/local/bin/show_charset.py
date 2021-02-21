@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -----------------------------------------------------------------------------
 # This program prints the available charset to the display
 #
