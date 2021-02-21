@@ -96,7 +96,7 @@ class Lirc(Thread,Base):
             self.process_key(key)
         except:
           if self._debug:
-            print traceback.format_exc()
+            traceback.print_exc()
 
     # cleanup work after termination
     self.debug("terminating Lirc.run() on stop request")

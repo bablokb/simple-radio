@@ -67,7 +67,7 @@ def check_options(options):
 
   # record needs a channel number
   if options.do_record and not options.channel:
-    print "[ERROR] record-option (-r) needs channel nummber as argument"
+    print("[ERROR] record-option (-r) needs channel nummber as argument")
     sys.exit(3)
 
 # --- main application class   ----------------------------------------------
@@ -255,7 +255,7 @@ class App(Base):
     except:
       self.debug("Loading settings failed")
       if self._debug:
-        print traceback.format_exc()
+        traceback.print_exc()
 
   # --- setup signal handler   ------------------------------------------------
 

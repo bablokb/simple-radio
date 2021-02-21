@@ -22,7 +22,7 @@ try:
   lcd = lcddriver.lcd(port=I2C_PORT)
   simulate = False
 except:
-  print traceback.format_exc()
+  traceback.print_exc()
   simulate = True
 
 if COLS == 20:
@@ -41,8 +41,8 @@ for part in sys.argv[1:]:
 
   # output header and content
   if simulate:
-    print header
-    print line
+    print(header)
+    print(line)
   else:
     lcd.lcd_display_string(header,1)
     lcd.lcd_display_string(line,2)

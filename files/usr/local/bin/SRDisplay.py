@@ -117,7 +117,7 @@ class Display(Thread,Base):
         self._content_queue.get_nowait()
     except:
       if self._debug:
-        print traceback.format_exc()
+        traceback.print_exc()
       pass
     self.debug("... and clearing lines on the display")
     for i in range(self._rows-1):
@@ -160,7 +160,7 @@ class Display(Thread,Base):
       self._content_deque.append("")
     except:
       if self._debug:
-        print traceback.format_exc()
+        traceback.print_exc()
 
   # --- write to the display   ----------------------------------------------
 

@@ -156,5 +156,5 @@ class Mpg123(Base):
     except:
       # typically an IO-exception due to closing of stdout
       if self._debug:
-        print traceback.format_exc()
+        traceback.print_exc()
       pass

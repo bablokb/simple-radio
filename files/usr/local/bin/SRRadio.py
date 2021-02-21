@@ -143,7 +143,7 @@ class Radio(Base):
           break
         except:
           if self._debug:
-            print traceback.format_exc()
+            traceback.print_exc()
           break
     return lines
 

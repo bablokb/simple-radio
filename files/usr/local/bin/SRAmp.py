@@ -58,7 +58,7 @@ class Amp(Base):
       return self._volume
     except:
       if self._debug:
-        print traceback.format_exc()
+        traceback.print_exc()
       return -1
 
   # --- set volume   ----------------------------------------------------------
@@ -74,7 +74,7 @@ class Amp(Base):
       self._volume = volume
     except:
       if self._debug:
-        print traceback.format_exc()
+        traceback.print_exc()
 
   # --- turn volume up   ------------------------------------------------------
 
