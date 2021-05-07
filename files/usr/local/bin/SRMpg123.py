@@ -14,7 +14,7 @@
 
 import threading, subprocess, signal, os, shlex, re, traceback
 from threading import Thread
-import Queue, collections
+import queue, collections
 
 from SRBase import Base
 
@@ -69,7 +69,7 @@ class Mpg123(Base):
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
     if radio_mode:
-      self.icy_data   = Queue.Queue()
+      self.icy_data   = queue.Queue()
       self._icy_event = threading.Event()
       self._icy_thread = threading.Thread(target=self.read_icy_meta)
       self._icy_thread.start()

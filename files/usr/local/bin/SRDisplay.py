@@ -14,7 +14,7 @@
 
 import threading, os
 from threading import Thread
-import Queue, collections
+import queue, collections
 
 try:
   import lcddriver
@@ -33,7 +33,7 @@ class Display(Thread,Base):
     super(Display,self).__init__(name="Display")
 
     self._app              = app
-    self._content_queue    = Queue.Queue()         # for split content data
+    self._content_queue    = queue.Queue()         # for split content data
     self._content_provider = None                  # content provider
     self.read_config()
 
@@ -64,7 +64,7 @@ class Display(Thread,Base):
 
     if rule:
       rule            = rule.split(",")
-      rule[0]         = rule[0].decode('UTF-8')
+      rule[0]         = rule[0]
       self._transmap = {}
       for i in range(len(rule[0])):
         self._transmap[rule[0][i]] = int(rule[i+1],16)
@@ -156,7 +156,7 @@ class Display(Thread,Base):
         line = self._content_queue.get_nowait()
         self.debug("update_display: line: %s" % line)
         self._content_deque.append(line)
-    except Queue.Empty:
+    except queue.Empty:
       self._content_deque.append("")
     except:
       if self._debug:

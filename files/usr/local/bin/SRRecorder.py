@@ -15,7 +15,7 @@
 #
 # -----------------------------------------------------------------------------
 
-import threading, os, datetime, urllib2
+import threading, os, datetime, urllib.request
 from threading import Thread
 
 from SRBase import Base
@@ -75,7 +75,7 @@ class Recorder(Thread,Base):
     """ record the given stream """
 
     self._rec_channel,url = channel
-    request = urllib2.Request(url)
+    request = urllib.request.Request(url)
     cur_dt_string = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = "%s%s%s_%s" % (self._target_dir,os.sep,cur_dt_string,
                                                              self._rec_channel)
@@ -87,13 +87,13 @@ class Recorder(Thread,Base):
       filename += '.ogg'
     elif(content_type == 'audio/x-mpegurl'):
       url = None
-      conn = urllib2.urlopen(request)
+      conn = urllib.request.urlopen(request)
       with conn as stream:
-        if not line.decode('utf-8').startswith('#') and len(line) > 1:
-          url = line.decode('utf-8')
+        if not line.startswith('#') and len(line) > 1:
+          url = line
           stream.close()
       if url:
-        request = urllib2.Request(url)
+        request = urllib.request.Request(url)
         filename += '.mp3'
       else:
         self._debug("could not parse m3u-playlist")
@@ -105,7 +105,7 @@ class Recorder(Thread,Base):
     with open(filename, "wb") as stream:
       self.debug('recording %s for %d minutes' %
                                               (self._rec_channel,self._duration))
-      conn = urllib2.urlopen(request)
+      conn = urllib.request.urlopen(request)
       self._rec_start_dt = datetime.datetime.now()
       while(not self.rec_stop.is_set()):
         stream.write(conn.read(Recorder.RECORD_CHUNK))

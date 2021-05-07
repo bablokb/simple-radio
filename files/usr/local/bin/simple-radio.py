@@ -15,10 +15,10 @@
 #
 # -----------------------------------------------------------------------------
 
-import locale, os, sys, simplejson, traceback
+import locale, os, sys, json, traceback
 from   argparse import ArgumentParser
 import threading, signal
-import ConfigParser
+import configparser
 
 from SRBase     import Base
 
@@ -79,7 +79,7 @@ class App(Base):
     """ initialization """
 
     self.options    = options
-    self.parser     = ConfigParser.RawConfigParser()
+    self.parser     = configparser.RawConfigParser(inline_comment_prefixes=(';',))
     self.parser.optionxform = str
     self.parser.read('/etc/simple-radio.conf')
 
@@ -145,7 +145,7 @@ class App(Base):
   def exec_func(self,func_name,key):
     """ execute logical function """
 
-    if self._functions.has_key(func_name):
+    if func_name in self._functions:
       func = self._functions[func_name]
       if func.im_self.is_active():                #p3: func.__self__
         self.debug("executing: %s" % func_name)
@@ -234,7 +234,7 @@ class App(Base):
 
     f = open(self._store,"w")
     self.debug("Saving settings to %s" % self._store)
-    simplejson.dump(state,f,indent=2,sort_keys=True)
+    json.dump(state,f,indent=2,sort_keys=True)
     f.close()
 
   # --- load state of objects   -----------------------------------------------
@@ -247,9 +247,9 @@ class App(Base):
         return
       self.debug("Loading settings from %s" % self._store)
       f = open(self._store,"r")
-      state = simplejson.load(f)
+      state = json.load(f)
       for obj in self._objects:
-        if state.has_key(obj.__module__):
+        if obj.__module__ in state:
           obj.set_persistent_state(state[obj.__module__])
       f.close()
     except:

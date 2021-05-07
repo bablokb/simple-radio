@@ -13,7 +13,7 @@
 # -----------------------------------------------------------------------------
 
 import threading, os, time, datetime, shlex
-import Queue, collections
+import queue, collections
 import threading, signal, subprocess, traceback
 
 from SRBase import Base
@@ -62,7 +62,7 @@ class Radio(Base):
     """ restore persistent state (overrides SRBase.set_pesistent_state()) """
 
     self.debug("Radio: restoring persistent state")
-    if state_map.has_key('channel_index'):
+    if 'channel_index' in state_map:
       self._last_channel = state_map['channel_index']
 
   # --- read channels   -------------------------------------------------------
@@ -73,7 +73,7 @@ class Radio(Base):
     self._channels = []
     with open(self._channel_file) as f:
       for channel in f:
-        channel = channel.rstrip('\n').decode('utf-8')
+        channel = channel.rstrip('\n')
         self._channels.append(channel.split('@')) # channel: line with name@url
 
   # --- get channel info   ----------------------------------------------------
@@ -139,7 +139,7 @@ class Radio(Base):
           line = self._app.mpg123.icy_data.get_nowait()
           self.debug("get_content: line: %s" % line)
           lines.append(line)
-        except Queue.Empty:
+        except queue.Empty:
           break
         except:
           if self._debug:

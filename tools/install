@@ -27,7 +27,7 @@ fi
 
 # --- defaults used during installation   ----------------------------------
 
-PACKAGES="python-smbus python-simplejson mpg123 mp3info lirc"
+PACKAGES="python3-smbus mpg123 mp3info lirc"
 PROJECT="simple-radio"
 
 # --- basic packages   ------------------------------------------------------

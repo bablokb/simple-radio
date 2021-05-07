@@ -47,7 +47,8 @@ class Keypad(Thread,Base):
     # section [KEYPAD]
     key_map_radio  = {}
     key_map_player = {}
-    for (key,mappings) in self._app.parser.items("KEYPAD"):
+    for key in self._app.parser["KEYPAD"]:
+      mappings = self._app.parser["KEYPAD"][key]
       if ',' in mappings:
         func_radio,func_player = mappings.split(",")
         if len(func_radio):
@@ -127,7 +128,7 @@ class Keypad(Thread,Base):
     """ map key to command and execute it"""
 
     self.debug("processing key %s" % key)
-    if not self._keymaps[self._map_index].has_key(key):
+    if not key in self._keymaps[self._map_index]:
       self.debug("unsupported key %s" % key)
       return
     # delegate execution to class App

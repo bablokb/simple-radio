@@ -42,7 +42,8 @@ class Lirc(Thread,Base):
       return
 
     # section [LIRC]
-    for (key,func) in self._app.parser.items("LIRC"):
+    for key in self._app.parser["LIRC"]:
+      func = self._app.parser["LIRC"][key]
       words = func.split()
       words.extend([0,0])
       [func_name,func_repeat,func_delay] = words[:3]
@@ -115,7 +116,7 @@ class Lirc(Thread,Base):
     rep_count = int(rep_count)
 
     # check for valid KEY (should not happen)
-    if not self._keymap.has_key(key_name):
+    if not key_name in self._keymap:
       self.debug("unsupported key %s" % key_name)
       return
 
