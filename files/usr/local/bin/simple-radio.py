@@ -147,7 +147,7 @@ class App(Base):
 
     if func_name in self._functions:
       func = self._functions[func_name]
-      if func.im_self.is_active():                #p3: func.__self__
+      if func.__self__.is_active():
         self.debug("executing: %s" % func_name)
         func(key)
       else:
