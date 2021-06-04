@@ -74,7 +74,7 @@ fi
 
 if ! grep -q "^dtoverlay=lirc-rpi" /boot/config.txt ; then
   echo -e "[INFO] configuring LIRC in /boot/config.txt" 2>&1
-  echo "dtoverlay=lirc-rpi,gpio_in_pin=$LIRC_PIN" >> /boot/config.txt
+  echo "dtoverlay=gpio-ir,gpio_pin=$LIRC_PIN" >> /boot/config.txt
   restart=1
 fi
 
