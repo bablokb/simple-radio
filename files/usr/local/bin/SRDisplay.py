@@ -44,6 +44,8 @@ class Display(Thread,Base):
 
     # section [GLOBAL]
     self._debug  = self.get_value(self._app.parser,"GLOBAL", "debug","0") == "1"
+    if self._debug:
+      import traceback
 
     # section [DISPLAY]
     have_disp         = (self.get_value(self._app.parser,
