@@ -67,7 +67,8 @@ class Keypad(Thread,Base):
 
   def set_keymap(self,map):
     """ set the keymap to use """
-    self._map_index = map
+    if self._active:
+      self._map_index = map
 
   # --- poll keys   ---------------------------------------------------------
 
