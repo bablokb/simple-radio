@@ -161,7 +161,7 @@ class App(Base):
     self.debug("starting player mode")
     self.radio.set_state(False)
     self.mpg123.stop()
-    self.keypad.set_keymap(Keypad.KEYPAD_PLAYER)
+    self.keypad.set_keymap(self.keypad.KEYPAD_PLAYER)
     self.player.set_state(True)
     self.display.set_content_provider(self.player)
 
@@ -174,7 +174,7 @@ class App(Base):
     self.player.set_state(False)
     self.mpg123.stop()
     self.display.clear()
-    self.keypad.set_keymap(Keypad.KEYPAD_RADIO)
+    self.keypad.set_keymap(self.keypad.KEYPAD_RADIO)
     self.display.set_content_provider(self.radio)
     self.radio.set_state(True)
 
