@@ -72,7 +72,7 @@ if ! grep -q "^dtparam=i2c_arm=on" /boot/config.txt ; then
   restart=1
 fi
 
-if ! grep -q "^dtoverlay=lirc-rpi" /boot/config.txt ; then
+if ! grep -q "^dtoverlay=gpio-ir" /boot/config.txt ; then
   echo -e "[INFO] configuring LIRC in /boot/config.txt" 2>&1
   echo "dtoverlay=gpio-ir,gpio_pin=$LIRC_PIN" >> /boot/config.txt
   restart=1
